@@ -30,22 +30,13 @@ def parse_json_response(text: str, model: Type[T]) -> T:
 
     raw = raw.strip()
 
+    raw = re.sub(r',\s*//[^\n]*', ',', raw)
+    raw = re.sub(r'^\s*#.*$', '', raw, flags=re.MULTILINE)
+
     try:
         return model.model_validate_json(raw)
     except Exception:
         pass
-
-    # Truncated JSON (e.g. LLM hit token limit): try closing the structure
-    if '"chunks"' in raw or '"code"' in raw:
-        for suffix in [
-            '", "context": ""}]}',   # inside "language": "..." -> close string, add context, close chunk/array
-            '"}]}',                   # inside "language": " -> close string, close object, array, outer
-            '"]}',                   # after last complete chunk
-        ]:
-            try:
-                return model.model_validate_json(raw + suffix)
-            except Exception:
-                continue
 
     sanitized = _sanitize_json_string(raw)
     return model.model_validate_json(sanitized)

@@ -10,10 +10,14 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
         ("system", (
             "You are an expert at extracting code from academic papers. "
             "Given the full text of a research paper, identify and extract ALL code chunks, "
-            "including algorithms, pseudocode, code listings, function definitions, "
-            "and inline code snippets. For each chunk, identify the programming language "
-            "(use 'pseudocode' if it is not a real language) and provide a brief description "
-            "of what the code does based on the surrounding context in the paper.\n\n"
+            "including algorithms, code listings, function definitions, "
+            "and inline code snippets. Code in algorithm boxes that is written in Python or other runnable syntax should be extracted. "
+            "Include only chunks that are executable in a real language (python, javascript, typescript, bash, shell). "
+            "Do not include pseudocode, algorithm notation, or non-executable snippets—omit them entirely; only output runnable code.\n"
+            "Include code even if it looks incomplete or references undefined variables; do not exclude snippets for that reason.\n"
+            "For each chunk use only the keys: code, language, context (no extra keys). Identify the programming language and provide a brief description.\n"
+            "When you see a function definition followed by assert or test lines (e.g. assert f(...) == ??), "
+            "extract only the function; do not create a separate chunk for the assert/test line.\n\n"
             "Respond with ONLY a JSON object in this exact format:\n"
             '{{"chunks": [{{"code": "...", "language": "python", "context": "description"}}, ...]}}\n'
             "If no code is found, return: {{}}"
@@ -30,8 +34,9 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
             {"code": chunk.code, "language": chunk.language, "context": chunk.context}
             for chunk in result.chunks
         ]
-    except Exception:
+    except Exception as e:
         chunks = []
+        print("[CodeExtractor] parse failed:", e)
 
     return {
         "subagent_responses": {
