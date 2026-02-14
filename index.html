@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHECKR — Check Every Claim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ink: #111;
+      --paper: #faf9f7;
+      --muted: #888;
+      --faint: #ddd;
+    }
+
+    html {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Outfit', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Subtle dot grid ─────────────────────── */
+    .dot-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image: radial-gradient(circle, rgba(0,0,0,0.045) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, black 10%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, black 10%, transparent 70%);
+      opacity: 0;
+      animation: fadeIn 2.5s 1.6s ease forwards;
+      pointer-events: none;
+    }
+
+    /* ── Navigation ──────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 52px;
+      opacity: 0;
+      animation: fadeIn 0.8s 0.1s ease forwards;
+    }
+
+    .nav-logo img {
+      height: 30px;
+      width: auto;
+      display: block;
+      opacity: 0.8;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+
+    .nav-link {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.3px;
+      transition: color 0.3s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--ink);
+    }
+
+    /* ── Hero ─────────────────────────────────── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 32px 60px;
+      text-align: center;
+    }
+
+    .hero-visual {
+      margin-bottom: 0px;
+      opacity: 0;
+      animation: liftIn 1.4s 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .hero-visual img {
+      width: 250px;
+      height: auto;
+      display: block;
+    }
+
+    /* ── Thin rule ────────────────────────────── */
+    .rule {
+      width: 48px;
+      height: 1px;
+      background: var(--faint);
+      margin-bottom: 30px;
+      opacity: 0;
+      animation: fadeIn 1s 0.8s ease forwards;
+    }
+
+    /* ── Headline ─────────────────────────────── */
+    .hero-headline {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(42px, 5.6vw, 76px);
+      line-height: 1.08;
+      letter-spacing: -2px;
+      margin-bottom: 22px;
+      overflow: hidden;
+    }
+
+    .hero-headline .word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(100%);
+      animation: wordReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .hero-headline .word:nth-child(1) { animation-delay: 0.6s; }
+    .hero-headline .word:nth-child(2) { animation-delay: 0.74s; }
+    .hero-headline .word:nth-child(3) { animation-delay: 0.88s; }
+
+    .hero-headline em {
+      font-style: italic;
+    }
+
+    /* ── Description ──────────────────────────── */
+    .hero-desc {
+      font-size: 16px;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 360px;
+      margin: 0 auto 48px;
+      opacity: 0;
+      animation: liftIn 1s 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* ── CTA Button ──────────────────────────── */
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 36px;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.4px;
+      border: none;
+      border-radius: 100px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      opacity: 0;
+      animation: liftIn 1s 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-cta::before {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s ease, height 0.6s ease;
+    }
+
+    .hero-cta:hover::before {
+      width: 320px;
+      height: 320px;
+    }
+
+    .hero-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    }
+
+    .hero-cta .arrow {
+      transition: transform 0.3s ease;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-cta:hover .arrow {
+      transform: translateX(4px);
+    }
+
+    .hero-cta .label {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Overlay ─────────────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .overlay.is-active {
+      pointer-events: auto;
+      opacity: 1;
+    }
+
+    .overlay-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(17, 17, 17, 0.0);
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: background 0.6s ease, backdrop-filter 0.6s ease, -webkit-backdrop-filter 0.6s ease;
+    }
+
+    .overlay.is-active .overlay-backdrop {
+      background: rgba(17, 17, 17, 0.55);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .overlay-close {
+      position: absolute;
+      top: 36px;
+      right: 48px;
+      z-index: 10;
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.4s 0.5s ease, transform 0.4s 0.5s ease;
+    }
+
+    .overlay.is-active .overlay-close {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .overlay-close svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--paper);
+      stroke-width: 1.5;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      opacity: 0.6;
+    }
+
+    .overlay-close:hover svg {
+      transform: rotate(90deg);
+      opacity: 1;
+    }
+
+    .overlay-content {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 52px;
+    }
+
+    /* ── Paper Stack ─────────────────────────── */
+    .paper-stack {
+      position: relative;
+      width: 300px;
+      height: 400px;
+      perspective: 1000px;
+      cursor: default;
+    }
+
+    .paper-stack .paper-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 300px;
+      height: 400px;
+      border-radius: 6px;
+      background: #fff;
+      overflow: hidden;
+      will-change: transform;
+      transform-style: preserve-3d;
+      transition: transform 0.12s ease-out, box-shadow 0.4s ease;
+
+      /* entrance */
+      opacity: 0;
+      transform: translateY(80px) scale(0.92);
+    }
+
+    .overlay.is-active .paper-card {
+      opacity: 1;
+    }
+
+    /* stacked offsets + staggered entrance */
+    .overlay.is-active .paper-card:nth-child(1) {
+      transform: translate(-20px, -16px) rotate(-4deg);
+      box-shadow:
+        0 4px 12px rgba(0,0,0,0.08),
+        0 20px 50px rgba(0,0,0,0.15);
+      transition: opacity 0.5s 0.2s ease, transform 0.12s ease-out, box-shadow 0.4s ease;
+      z-index: 1;
+    }
+
+    .overlay.is-active .paper-card:nth-child(2) {
+      transform: translate(0px, 0px) rotate(0deg);
+      box-shadow:
+        0 4px 12px rgba(0,0,0,0.08),
+        0 24px 60px rgba(0,0,0,0.18);
+      transition: opacity 0.5s 0.35s ease, transform 0.12s ease-out, box-shadow 0.4s ease;
+      z-index: 2;
+    }
+
+    .overlay.is-active .paper-card:nth-child(3) {
+      transform: translate(20px, 16px) rotate(4deg);
+      box-shadow:
+        0 4px 12px rgba(0,0,0,0.08),
+        0 28px 70px rgba(0,0,0,0.20);
+      transition: opacity 0.5s 0.5s ease, transform 0.12s ease-out, box-shadow 0.4s ease;
+      z-index: 3;
+    }
+
+    /* shine overlay */
+    .paper-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.3) 0%,
+        transparent 40%,
+        transparent 60%,
+        rgba(0,0,0,0.04) 100%
+      );
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .paper-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      display: block;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .paper-card .pdf-frame {
+      width: 600px;
+      height: 800px;
+      border: none;
+      transform: scale(0.5);
+      transform-origin: top left;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .paper-label-stack {
+      position: absolute;
+      bottom: 12px;
+      left: 16px;
+      font-size: 10px;
+      font-weight: 400;
+      color: rgba(0,0,0,0.35);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      z-index: 3;
+    }
+
+    /* ── Upload Area ─────────────────────────── */
+    .upload-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s 0.65s ease, transform 0.5s 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .overlay.is-active .upload-area {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .upload-hint {
+      font-size: 13px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.3px;
+    }
+
+    .upload-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 40px;
+      background: rgba(255,255,255,0.08);
+      color: var(--paper);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.4px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
+    }
+
+    .upload-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 100px;
+      background: rgba(255,255,255,0);
+      transition: background 0.4s ease;
+    }
+
+    .upload-btn:hover::before {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .upload-btn:hover {
+      border-color: rgba(255,255,255,0.28);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .upload-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      fill: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .upload-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .upload-btn input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    /* file chosen feedback */
+    .upload-area.has-file .upload-btn {
+      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.12);
+    }
+
+    .upload-filename {
+      font-size: 12px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.2px;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      height: 0;
+      opacity: 0;
+      transition: height 0.3s ease, opacity 0.3s ease;
+    }
+
+    .upload-area.has-file .upload-filename {
+      height: 18px;
+      opacity: 1;
+    }
+
+    /* ── Keyframes ───────────────────────────── */
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    @keyframes liftIn {
+      from { opacity: 0; transform: translateY(28px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes wordReveal {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 24px 28px; }
+      .nav-right { gap: 24px; }
+      .hero { padding: 100px 24px 80px; }
+      .hero-visual img { width: 220px; }
+      .hero-desc { font-size: 15px; max-width: 300px; }
+      .rule { width: 36px; margin-bottom: 40px; }
+      .paper-stack { width: 240px; height: 320px; }
+      .paper-stack .paper-card { width: 240px; height: 320px; }
+      .overlay-close { top: 24px; right: 28px; }
+    }
+
+    @media (max-width: 480px) {
+      nav { padding: 20px 20px; }
+      .nav-link:first-child { display: none; }
+      .hero-visual img { width: 180px; }
+      .hero-headline { letter-spacing: -1px; }
+      .paper-stack { width: 220px; height: 290px; }
+      .paper-stack .paper-card { width: 220px; height: 290px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dot-bg"></div>
+
+  <nav>
+    <div class="nav-logo">
+      <img src="assets/checkr.png" alt="CHECKR">
+    </div>
+    <div class="nav-right">
+      <a href="#" class="nav-link">How it works</a>
+      <a href="#" class="nav-link" id="navGetStarted">Get started</a>
+    </div>
+  </nav>
+
+  <main class="hero">
+    <div class="hero-visual">
+      <img src="assets/loop.gif" alt="CHECKR">
+    </div>
+
+    <div class="rule"></div>
+
+    <h1 class="hero-headline">
+      <span class="word">Verify&nbsp;</span>
+      <span class="word"><em>every</em>&nbsp;</span>
+      <span class="word">claim.</span>
+    </h1>
+
+    <p class="hero-desc">
+      AI-powered verification for research papers.
+    </p>
+
+    <button class="hero-cta" id="getStartedBtn">
+      <span class="label">Get Started</span>
+      <span class="arrow">&rarr;</span>
+    </button>
+  </main>
+
+  <!-- ── Overlay ──────────────────────────────── -->
+  <div class="overlay" id="overlay">
+    <div class="overlay-backdrop" id="overlayBackdrop"></div>
+
+    <button class="overlay-close" id="overlayClose">
+      <svg viewBox="0 0 24 24" fill="none">
+        <line x1="6" y1="6" x2="18" y2="18"/>
+        <line x1="18" y1="6" x2="6" y2="18"/>
+      </svg>
+    </button>
+
+    <div class="overlay-content">
+      <div class="paper-stack" id="paperStack">
+        <div class="paper-card">
+          <iframe class="pdf-frame" src="assets/anth.pdf#page=1&toolbar=0&navpanes=0&scrollbar=0&view=FitH" title="Anthropic"></iframe>
+          <span class="paper-label-stack">Anthropic</span>
+        </div>
+        <div class="paper-card">
+          <img src="assets/google.png" alt="Attention Is All You Need" draggable="false">
+          <span class="paper-label-stack">Google</span>
+        </div>
+        <div class="paper-card">
+          <img src="assets/stan.png" alt="Stanford Research" draggable="false">
+          <span class="paper-label-stack">Stanford</span>
+        </div>
+      </div>
+
+      <div class="upload-area" id="uploadArea">
+        <span class="upload-hint">upload any paper here</span>
+        <label class="upload-btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 5v14M5 12l7-7 7 7"/>
+          </svg>
+          <span id="uploadLabel">Upload Paper</span>
+          <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt">
+        </label>
+        <span class="upload-filename" id="uploadFilename"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── Elements ──────────────────────────────── */
+    const getStartedBtn = document.getElementById('getStartedBtn');
+    const navGetStarted = document.getElementById('navGetStarted');
+    const overlay = document.getElementById('overlay');
+    const overlayBackdrop = document.getElementById('overlayBackdrop');
+    const overlayClose = document.getElementById('overlayClose');
+    const paperStack = document.getElementById('paperStack');
+    const cards = paperStack.querySelectorAll('.paper-card');
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const uploadFilename = document.getElementById('uploadFilename');
+
+    /* ── Overlay open/close ───────────────────── */
+    function openOverlay() {
+      overlay.classList.add('is-active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeOverlay() {
+      overlay.classList.remove('is-active');
+      document.body.style.overflow = '';
+    }
+
+    getStartedBtn.addEventListener('click', openOverlay);
+    navGetStarted.addEventListener('click', (e) => { e.preventDefault(); openOverlay(); });
+    overlayClose.addEventListener('click', closeOverlay);
+    overlayBackdrop.addEventListener('click', closeOverlay);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('is-active')) closeOverlay();
+    });
+
+    /* ── 3D mouse-tracking tilt on stacked cards ─ */
+    const baseTransforms = [
+      { tx: -20, ty: -16, rz: -4 },
+      { tx: 0,   ty: 0,   rz: 0 },
+      { tx: 20,  ty: 16,  rz: 4 },
+    ];
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let rafId = null;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      if (!rafId && overlay.classList.contains('is-active')) {
+        rafId = requestAnimationFrame(updateCards);
+      }
+    });
+
+    function updateCards() {
+      rafId = null;
+
+      const stackRect = paperStack.getBoundingClientRect();
+      const cx = stackRect.left + stackRect.width / 2;
+      const cy = stackRect.top + stackRect.height / 2;
+
+      /* normalised distance from stack center */
+      const dx = (mouseX - cx) / (window.innerWidth * 0.5);
+      const dy = (mouseY - cy) / (window.innerHeight * 0.5);
+
+      const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
+      cards.forEach((card, i) => {
+        const base = baseTransforms[i];
+
+        /* tilt toward cursor — stronger for top cards */
+        const intensity = 0.6 + (i * 0.25);
+        const rx = clamp(-dy * 16 * intensity, -22, 22);
+        const ry = clamp(dx * 16 * intensity, -22, 22);
+
+        /* shift toward cursor */
+        const shiftX = clamp(dx * 10 * intensity, -16, 16);
+        const shiftY = clamp(dy * 7 * intensity, -12, 12);
+
+        card.style.transform =
+          `translate(${base.tx + shiftX}px, ${base.ty + shiftY}px) ` +
+          `rotate(${base.rz}deg) ` +
+          `rotateX(${rx}deg) rotateY(${ry}deg)`;
+      });
+    }
+
+    /* reset on mouse leave */
+    document.addEventListener('mouseleave', () => {
+      cards.forEach((card, i) => {
+        const b = baseTransforms[i];
+        card.style.transform = `translate(${b.tx}px, ${b.ty}px) rotate(${b.rz}deg) rotateX(0) rotateY(0)`;
+      });
+    });
+
+    /* ── File upload ──────────────────────────── */
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        const name = fileInput.files[0].name;
+        uploadArea.classList.add('has-file');
+        uploadLabel.textContent = 'Change File';
+        uploadFilename.textContent = name;
+      }
+    });
+  </script>
+
+</body>
+</html>
