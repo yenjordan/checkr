@@ -11,11 +11,10 @@ async def PlannerAgent(state: AgentFState) -> AgentFState:
     planner = planner_prompt | llm.with_structured_output(PlannerOutput)
     
     # Invoke planner
-    result = planner.invoke({"query": state["query"]})
+    result = await planner.ainvoke({"query": state["query"]})
     
-    # Update state 
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["planner"] = {"steps": result.steps}
-    
-    return new_state
+    return {
+        "subagent_responses": {
+            "planner": {"steps": result.steps}
+        }
+    }

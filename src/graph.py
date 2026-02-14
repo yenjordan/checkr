@@ -29,34 +29,37 @@ def check_replanner_result(state: AgentFState) -> str:
 
 
 def decrement_retries(state: AgentFState) -> AgentFState:
-    new_state = dict(state)
-    new_state["remaining_tries"] = state.get("remaining_tries", MAX_RETRIES) - 1
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["status"] = "retrying"
-    return new_state
+    return {
+        "remaining_tries": state.get("remaining_tries", MAX_RETRIES) - 1,
+        "subagent_responses": {
+            "status": "retrying"
+        }
+    }
 
 
 def mark_hard_to_verify(state: AgentFState) -> AgentFState:
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["status"] = "hard_to_verify"
-    new_state["structured_response"] = {
-        "verdict": "hard_to_verify",
-        "summary": state.get("subagent_responses", {}).get("replanner", {}).get("summary", ""),
+    return {
+        "subagent_responses": {
+            "status": "hard_to_verify"
+        },
+        "structured_response": {
+            "verdict": "hard_to_verify",
+            "summary": state.get("subagent_responses", {}).get("replanner", {}).get("summary", ""),
+        }
     }
-    return new_state
 
 
 def mark_success(state: AgentFState) -> AgentFState:
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["status"] = "verified"
-    new_state["structured_response"] = {
-        "verdict": "verified",
-        "summary": state.get("subagent_responses", {}).get("replanner", {}).get("summary", ""),
-        "results": state.get("subagent_responses", {}).get("replanner", {}).get("results", []),
+    return {
+        "subagent_responses": {
+            "status": "verified"
+        },
+        "structured_response": {
+            "verdict": "verified",
+            "summary": state.get("subagent_responses", {}).get("replanner", {}).get("summary", ""),
+            "results": state.get("subagent_responses", {}).get("replanner", {}).get("results", []),
+        }
     }
-    return new_state
 
 
 workflow = StateGraph(AgentFState, config={})

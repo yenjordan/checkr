@@ -13,14 +13,14 @@ async def CodingAgent(state: AgentFState) -> AgentFState:
     ])
     
     coding_analyzer = coding_prompt | llm.with_structured_output(CodingAnalysisOutput)
-    result = coding_analyzer.invoke({"code_unit": code_unit, "intent": intent})
+    result = await coding_analyzer.ainvoke({"code_unit": code_unit, "intent": intent})
     
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["coding"] = {
-        "is_conceptually_correct": result.is_conceptually_correct,
-        "issues": result.issues,
-        "explanation": result.explanation
+    return {
+        "subagent_responses": {
+            "coding": {
+                "is_conceptually_correct": result.is_conceptually_correct,
+                "issues": result.issues,
+                "explanation": result.explanation
+            }
+        }
     }
-    
-    return new_state

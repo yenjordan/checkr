@@ -1,6 +1,6 @@
 from schemas import AgentFState, MathAnalysisOutput
 from langchain_core.prompts import ChatPromptTemplate
-from config import llm
+from config import llm_reasoning
 
 async def MathAgent(state: AgentFState) -> AgentFState:
     math_chunks = state.get("subagent_responses", {}).get("math_extractor", {}).get("chunks", [])
@@ -9,16 +9,17 @@ async def MathAgent(state: AgentFState) -> AgentFState:
 
     # Handle empty math case
     if not math_chunks:
-        new_state = dict(state)
-        new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-        new_state["subagent_responses"]["math"] = {
-            "is_mathematically_valid": True,
-            "is_consistent_with_claims": True,
-            "issues": [],
-            "explanation": "No mathematical content found in the paper to verify.",
-            "verified_steps": []
+        return {
+            "subagent_responses": {
+                "math": {
+                    "is_mathematically_valid": True,
+                    "is_consistent_with_claims": True,
+                    "issues": [],
+                    "explanation": "No mathematical content found in the paper to verify.",
+                    "verified_steps": []
+                }
+            }
         }
-        return new_state
 
     math_prompt = ChatPromptTemplate.from_messages([
         ("system", (
@@ -31,17 +32,17 @@ async def MathAgent(state: AgentFState) -> AgentFState:
         ("human", "Math chunks:\n{math_chunks}\n\nVerification goals:\n{intent}")
     ])
 
-    analyzer = math_prompt | llm.with_structured_output(MathAnalysisOutput)
-    result = analyzer.invoke({"math_chunks": math_chunks, "intent": intent})
+    analyzer = math_prompt | llm_reasoning.with_structured_output(MathAnalysisOutput)
+    result = await analyzer.ainvoke({"math_chunks": math_chunks, "intent": intent})
 
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["math"] = {
-        "is_mathematically_valid": result.is_mathematically_valid,
-        "is_consistent_with_claims": result.is_consistent_with_claims,
-        "issues": result.issues,
-        "explanation": result.explanation,
-        "verified_steps": result.verified_steps
+    return {
+        "subagent_responses": {
+            "math": {
+                "is_mathematically_valid": result.is_mathematically_valid,
+                "is_consistent_with_claims": result.is_consistent_with_claims,
+                "issues": result.issues,
+                "explanation": result.explanation,
+                "verified_steps": result.verified_steps
+            }
+        }
     }
-
-    return new_state

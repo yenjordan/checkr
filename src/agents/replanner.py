@@ -3,7 +3,7 @@ import tempfile
 import os
 from schemas import AgentFState, ReplannerOutput
 from langchain_core.prompts import ChatPromptTemplate
-from config import llm
+from config import llm_reasoning
 
 LANG_CONFIG = {
     "python": {"ext": ".py", "cmd": ["python3"]},
@@ -95,7 +95,7 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
             f"Stderr: {r['stderr'] or '(empty)'}\n\n"
         )
 
-    analyzer = analysis_prompt | llm.with_structured_output(ReplannerOutput)
+    analyzer = analysis_prompt | llm_reasoning.with_structured_output(ReplannerOutput)
     analysis = analyzer.invoke({"results": results_text})
 
     final_results = []

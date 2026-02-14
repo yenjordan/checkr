@@ -18,15 +18,15 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
     ])
 
     extractor = extractor_prompt | llm.with_structured_output(CodeExtractorOutput)
-    result = extractor.invoke({"paper_text": paper_text})
+    result = await extractor.ainvoke({"paper_text": paper_text})
 
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["code_extractor"] = {
-        "chunks": [
-            {"code": chunk.code, "language": chunk.language, "context": chunk.context}
-            for chunk in result.chunks
-        ]
+    return {
+        "subagent_responses": {
+            "code_extractor": {
+                "chunks": [
+                    {"code": chunk.code, "language": chunk.language, "context": chunk.context}
+                    for chunk in result.chunks
+                ]
+            }
+        }
     }
-
-    return new_state

@@ -3,10 +3,17 @@ from typing_extensions import Annotated
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel
 
+def reduce_subagent_responses(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge two subagent_responses dictionaries"""
+    result = dict(left) if left else {}
+    if right:
+        result.update(right)
+    return result
+
 class AgentFState(TypedDict):
     messages: Annotated[list, add_messages]
     query: str
-    subagent_responses: Dict[str, Any]
+    subagent_responses: Annotated[Dict[str, Any], reduce_subagent_responses]
     entities: Optional[Dict]
     structured_response: Optional[Any]
     remaining_tries: int

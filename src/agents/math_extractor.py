@@ -17,15 +17,15 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
     ])
 
     extractor = extractor_prompt | llm.with_structured_output(MathExtractorOutput)
-    result = extractor.invoke({"paper_text": paper_text})
+    result = await extractor.ainvoke({"paper_text": paper_text})
 
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["math_extractor"] = {
-        "chunks": [
-            {"latex": chunk.latex, "context": chunk.context, "equation_type": chunk.equation_type}
-            for chunk in result.chunks
-        ]
+    return {
+        "subagent_responses": {
+            "math_extractor": {
+                "chunks": [
+                    {"latex": chunk.latex, "context": chunk.context, "equation_type": chunk.equation_type}
+                    for chunk in result.chunks
+                ]
+            }
+        }
     }
-
-    return new_state
