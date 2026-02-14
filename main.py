@@ -17,6 +17,9 @@ load_dotenv()
 
 from graph import workflow, MAX_RETRIES
 from services.code_extract import extract_pdf, parse_document
+from services.supabase_store import save_analysis
+from services.rag_chat import chat as rag_chat
+from pydantic import BaseModel
 
 app = FastAPI(title="CHECKR API")
 
@@ -66,7 +69,18 @@ async def check_paper(file: UploadFile = File(...)):
 
         result = await graph.ainvoke(initial_state)
 
-        # Step 3: Build response
+        # Step 3: Save to Supabase for RAG pipeline
+        try:
+            save_analysis(
+                filename=file.filename,
+                paper_text=paper_text,
+                page_count=parsed["pages"],
+                result=result,
+            )
+        except Exception as store_err:
+            print(f"[Supabase] Failed to save analysis: {store_err}")
+
+        # Step 4: Build response
         structured = result.get("structured_response", {})
         subagent = result.get("subagent_responses", {})
 
@@ -89,6 +103,29 @@ async def check_paper(file: UploadFile = File(...)):
         )
     finally:
         os.unlink(tmp_path)
+
+
+class ChatRequest(BaseModel):
+    filename: str
+    question: str
+    history: list[dict] = []
+
+
+@app.post("/api/chat")
+async def chat_endpoint(req: ChatRequest):
+    """RAG chatbot: answer questions about a paper using stored analysis."""
+    try:
+        answer = await rag_chat(
+            filename=req.filename,
+            question=req.question,
+            history=req.history,
+        )
+        return {"answer": answer}
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)},
+        )
 
 
 # Serve static files (assets/) and index.html
