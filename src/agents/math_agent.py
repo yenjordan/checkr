@@ -1,6 +1,6 @@
 from schemas import AgentFState, MathAnalysisOutput
 from langchain_core.prompts import ChatPromptTemplate
-from config import llm
+from config import llm_reasoning
 
 async def MathAgent(state: AgentFState) -> AgentFState:
     math_chunks = state.get("subagent_responses", {}).get("math_extractor", {}).get("chunks", [])
@@ -31,7 +31,7 @@ async def MathAgent(state: AgentFState) -> AgentFState:
         ("human", "Math chunks:\n{math_chunks}\n\nVerification goals:\n{intent}")
     ])
 
-    analyzer = math_prompt | llm.with_structured_output(MathAnalysisOutput)
+    analyzer = math_prompt | llm_reasoning.with_structured_output(MathAnalysisOutput)
     result = analyzer.invoke({"math_chunks": math_chunks, "intent": intent})
 
     new_state = dict(state)
