@@ -4,6 +4,7 @@ import os
 from schemas import AgentFState, ReplannerOutput
 from langchain_core.prompts import ChatPromptTemplate
 from config import llm_reasoning
+from utils import parse_json_response
 
 LANG_CONFIG = {
     "python": {"ext": ".py", "cmd": ["python3"]},
@@ -73,6 +74,17 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
             "stderr": exec_result["stderr"],
         })
 
+    # If no chunks to analyze, return early
+    if not execution_results:
+        return {
+            "subagent_responses": {
+                "replanner": {
+                    "results": [],
+                    "summary": "No code chunks found to execute.",
+                }
+            }
+        }
+
     analysis_prompt = ChatPromptTemplate.from_messages([
         ("system", (
             "You are an expert at analyzing code execution results from research papers. "
@@ -80,7 +92,10 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
             "they ran successfully, provide a detailed analysis of each chunk's validity "
             "and accuracy. For chunks that failed, explain likely causes. For chunks that "
             "ran, assess whether the output looks correct given the code's intended purpose. "
-            "For non-executable languages like pseudocode, analyze the logic for correctness."
+            "For non-executable languages like pseudocode, analyze the logic for correctness.\n\n"
+            "Respond with ONLY a JSON object in this exact format:\n"
+            '{{"results": [{{"code": "...", "language": "python", "ran_successfully": true, '
+            '"stdout": "...", "stderr": "...", "analysis": "..."}}, ...], "summary": "..."}}'
         )),
         ("human", "Analyze these code execution results:\n\n{results}")
     ])
@@ -95,8 +110,9 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
             f"Stderr: {r['stderr'] or '(empty)'}\n\n"
         )
 
-    analyzer = analysis_prompt | llm_reasoning.with_structured_output(ReplannerOutput)
-    analysis = analyzer.invoke({"results": results_text})
+    chain = analysis_prompt | llm_reasoning
+    response = await chain.ainvoke({"results": results_text})
+    analysis = parse_json_response(response.content, ReplannerOutput)
 
     final_results = []
     for i, r in enumerate(execution_results):
@@ -110,11 +126,11 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
             "analysis": matching.analysis if matching else "No analysis available",
         })
 
-    new_state = dict(state)
-    new_state["subagent_responses"] = dict(new_state.get("subagent_responses", {}))
-    new_state["subagent_responses"]["replanner"] = {
-        "results": final_results,
-        "summary": analysis.summary,
+    return {
+        "subagent_responses": {
+            "replanner": {
+                "results": final_results,
+                "summary": analysis.summary,
+            }
+        }
     }
-
-    return new_state

@@ -569,6 +569,283 @@
       user-select: none;
     }
 
+    /* ── Check Paper Button ─────────────────── */
+    .check-btn {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 40px;
+      background: #fff;
+      color: var(--ink);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      border: none;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      margin-top: 4px;
+    }
+
+    .check-btn.visible {
+      display: inline-flex;
+    }
+
+    .check-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(255,255,255,0.15);
+    }
+
+    .check-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .check-btn .spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.15);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .check-btn.loading .spinner {
+      display: block;
+    }
+
+    .check-btn.loading .check-label {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Results Panel ──────────────────────── */
+    .results-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 440px;
+      height: 100vh;
+      z-index: 300;
+      background: var(--paper);
+      box-shadow: -8px 0 40px rgba(0,0,0,0.15);
+      transform: translateX(100%);
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow-y: auto;
+      padding: 40px 32px;
+    }
+
+    .results-panel.open {
+      transform: translateX(0);
+    }
+
+    .results-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--faint);
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.3s ease;
+    }
+
+    .results-close:hover {
+      border-color: var(--ink);
+    }
+
+    .results-close svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--muted);
+      stroke-width: 2;
+    }
+
+    .results-header {
+      margin-bottom: 28px;
+    }
+
+    .results-filename {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .results-verdict {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 32px;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    .results-verdict.verified {
+      color: #1a7a3a;
+    }
+
+    .results-verdict.hard_to_verify {
+      color: #b45309;
+    }
+
+    .results-verdict.unknown, .results-verdict.error {
+      color: #b91c1c;
+    }
+
+    .results-summary {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-top: 12px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--faint);
+    }
+
+    /* sections */
+    .results-section {
+      margin-top: 24px;
+    }
+
+    .results-section-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .result-card {
+      background: #fff;
+      border: 1px solid var(--faint);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+
+    .result-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .result-card-lang {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .result-badge {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .result-badge.pass {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .result-badge.fail {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .result-card-analysis {
+      font-size: 13px;
+      font-weight: 300;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .result-card code {
+      display: block;
+      background: #f5f5f4;
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #333;
+      overflow-x: auto;
+      margin-bottom: 8px;
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    /* math results */
+    .math-status {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .math-badge {
+      font-size: 11px;
+      font-weight: 400;
+      padding: 4px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--faint);
+    }
+
+    .math-badge.valid { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
+    .math-badge.invalid { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+    .math-steps {
+      list-style: none;
+      padding: 0;
+    }
+
+    .math-steps li {
+      font-size: 13px;
+      font-weight: 300;
+      color: #555;
+      line-height: 1.6;
+      padding: 6px 0;
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .math-steps li:last-child {
+      border-bottom: none;
+    }
+
+    .math-issues {
+      margin-top: 10px;
+    }
+
+    .math-issue {
+      font-size: 12px;
+      color: #b45309;
+      line-height: 1.5;
+      padding: 4px 0;
+    }
+
+    /* ── Responsive results panel ─────────── */
+    @media (max-width: 768px) {
+      .results-panel {
+        width: 100%;
+      }
+    }
+
     /* ── Keyframes ───────────────────────────── */
     @keyframes fadeIn {
       to { opacity: 1; }
@@ -680,8 +957,24 @@
           <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt">
         </label>
         <span class="upload-filename" id="uploadFilename"></span>
+        <button class="check-btn" id="checkBtn" disabled>
+          <span class="check-label">Check Paper</span>
+          <span class="spinner"></span>
+          <span class="loading-label" style="display:none">Analyzing...</span>
+        </button>
       </div>
     </div>
+  </div>
+
+  <!-- ── Results Panel ──────────────────────── -->
+  <div class="results-panel" id="resultsPanel">
+    <button class="results-close" id="resultsClose">
+      <svg viewBox="0 0 24 24" fill="none">
+        <line x1="6" y1="6" x2="18" y2="18"/>
+        <line x1="18" y1="6" x2="6" y2="18"/>
+      </svg>
+    </button>
+    <div id="resultsContent"></div>
   </div>
 
   <script type="module">
@@ -864,10 +1157,22 @@
       });
     }
 
+    /* ── Results panel elements ──────────────── */
+    const checkBtn = document.getElementById('checkBtn');
+    const resultsPanel = document.getElementById('resultsPanel');
+    const resultsClose = document.getElementById('resultsClose');
+    const resultsContent = document.getElementById('resultsContent');
+    let currentFile = null;
+
+    resultsClose.addEventListener('click', () => {
+      resultsPanel.classList.remove('open');
+    });
+
     /* ── File upload ──────────────────────────── */
     fileInput.addEventListener('change', async () => {
       if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
+        currentFile = file;
         uploadArea.classList.add('has-file');
         uploadLabel.textContent = 'Change File';
         uploadFilename.textContent = file.name;
@@ -875,8 +1180,151 @@
         if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
           await addPaperToStack(file);
         }
+
+        checkBtn.classList.add('visible');
+        checkBtn.disabled = false;
       }
     });
+
+    /* ── Check Paper button ──────────────────── */
+    checkBtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+
+      checkBtn.disabled = true;
+      checkBtn.classList.add('loading');
+      checkBtn.querySelector('.loading-label').style.display = 'inline';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', currentFile);
+
+        const res = await fetch('/api/check', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          renderError(data.error || 'Something went wrong.');
+        } else {
+          renderResults(data);
+        }
+      } catch (err) {
+        renderError(err.message);
+      } finally {
+        checkBtn.classList.remove('loading');
+        checkBtn.querySelector('.loading-label').style.display = 'none';
+        checkBtn.disabled = false;
+      }
+    });
+
+    /* ── Render results ──────────────────────── */
+    function renderResults(data) {
+      const verdictLabel = {
+        verified: 'Verified',
+        hard_to_verify: 'Hard to Verify',
+        unknown: 'Unknown',
+      };
+
+      let html = `
+        <div class="results-header">
+          <div class="results-filename">${data.filename || 'Paper'} &middot; ${data.pages || '?'} pages</div>
+          <div class="results-verdict ${data.verdict}">${verdictLabel[data.verdict] || data.verdict}</div>
+        </div>
+        <div class="results-summary">${data.summary || 'No summary available.'}</div>
+      `;
+
+      /* Planner steps */
+      if (data.planner_steps && data.planner_steps.length) {
+        html += `<div class="results-section">
+          <div class="results-section-title">Verification Plan</div>`;
+        data.planner_steps.forEach(step => {
+          html += `<div class="result-card"><div class="result-card-analysis">${step}</div></div>`;
+        });
+        html += `</div>`;
+      }
+
+      /* Code execution results */
+      if (data.code_results && data.code_results.length) {
+        html += `<div class="results-section">
+          <div class="results-section-title">Code Execution</div>`;
+        data.code_results.forEach((r, i) => {
+          const passed = r.ran_successfully;
+          html += `
+            <div class="result-card">
+              <div class="result-card-header">
+                <span class="result-card-lang">${r.language} &middot; Chunk ${i + 1}</span>
+                <span class="result-badge ${passed ? 'pass' : 'fail'}">${passed ? 'PASSED' : 'FAILED'}</span>
+              </div>
+              <code>${escapeHtml(r.code?.slice(0, 300) || '')}</code>
+              <div class="result-card-analysis">${r.analysis || ''}</div>
+            </div>`;
+        });
+        html += `</div>`;
+      }
+
+      /* Coding review */
+      if (data.coding_review && Object.keys(data.coding_review).length) {
+        const cr = data.coding_review;
+        html += `<div class="results-section">
+          <div class="results-section-title">Conceptual Review</div>
+          <div class="result-card">
+            <div class="result-card-header">
+              <span class="result-card-lang">Code Logic</span>
+              <span class="result-badge ${cr.is_conceptually_correct ? 'pass' : 'fail'}">
+                ${cr.is_conceptually_correct ? 'CORRECT' : 'ISSUES FOUND'}
+              </span>
+            </div>
+            <div class="result-card-analysis">${cr.explanation || ''}</div>
+            ${cr.issues?.length ? cr.issues.map(i => `<div class="math-issue">${i}</div>`).join('') : ''}
+          </div>
+        </div>`;
+      }
+
+      /* Math verification */
+      if (data.math && Object.keys(data.math).length && data.math.explanation) {
+        const m = data.math;
+        html += `<div class="results-section">
+          <div class="results-section-title">Math Verification</div>
+          <div class="result-card">
+            <div class="math-status">
+              <span class="math-badge ${m.is_mathematically_valid ? 'valid' : 'invalid'}">
+                ${m.is_mathematically_valid ? 'Valid' : 'Invalid'}
+              </span>
+              <span class="math-badge ${m.is_consistent_with_claims ? 'valid' : 'invalid'}">
+                ${m.is_consistent_with_claims ? 'Consistent' : 'Inconsistent'}
+              </span>
+            </div>
+            <div class="result-card-analysis">${m.explanation}</div>
+            ${m.issues?.length ? `<div class="math-issues">${m.issues.map(i => `<div class="math-issue">${i}</div>`).join('')}</div>` : ''}
+            ${m.verified_steps?.length ? `
+              <ul class="math-steps" style="margin-top:12px">
+                ${m.verified_steps.map(s => `<li>${s}</li>`).join('')}
+              </ul>` : ''}
+          </div>
+        </div>`;
+      }
+
+      resultsContent.innerHTML = html;
+      resultsPanel.classList.add('open');
+    }
+
+    function renderError(msg) {
+      resultsContent.innerHTML = `
+        <div class="results-header">
+          <div class="results-verdict error">Error</div>
+        </div>
+        <div class="results-summary">${escapeHtml(msg)}</div>
+      `;
+      resultsPanel.classList.add('open');
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
   </script>
 
 </body>

@@ -1,6 +1,7 @@
 from schemas import AgentFState, MathAnalysisOutput
 from langchain_core.prompts import ChatPromptTemplate
 from config import llm_reasoning
+from utils import parse_json_response
 
 async def MathAgent(state: AgentFState) -> AgentFState:
     math_chunks = state.get("subagent_responses", {}).get("math_extractor", {}).get("chunks", [])
@@ -27,13 +28,17 @@ async def MathAgent(state: AgentFState) -> AgentFState:
             "For each equation/formula: "
             "1) Check mathematical validity (correct derivations, dimensional consistency) "
             "2) Verify consistency with paper claims (does it match what author says it represents?) "
-            "Provide step-by-step verification reasoning."
+            "Provide step-by-step verification reasoning.\n\n"
+            "Respond with ONLY a JSON object in this exact format:\n"
+            '{{"is_mathematically_valid": true, "is_consistent_with_claims": true, '
+            '"issues": ["issue1", ...], "explanation": "...", "verified_steps": ["step1", ...]}}'
         )),
         ("human", "Math chunks:\n{math_chunks}\n\nVerification goals:\n{intent}")
     ])
 
-    analyzer = math_prompt | llm_reasoning.with_structured_output(MathAnalysisOutput)
-    result = await analyzer.ainvoke({"math_chunks": math_chunks, "intent": intent})
+    chain = math_prompt | llm_reasoning
+    response = await chain.ainvoke({"math_chunks": str(math_chunks), "intent": intent})
+    result = parse_json_response(response.content, MathAnalysisOutput)
 
     return {
         "subagent_responses": {
