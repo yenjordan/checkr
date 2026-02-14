@@ -1520,13 +1520,14 @@
 
     /* ── Chat message bubbles ─────────────── */
     .chat-msg {
-      max-width: 85%;
+      max-width: 88%;
       padding: 10px 14px;
       border-radius: 14px;
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 13px;
       font-weight: 300;
-      line-height: 1.6;
-      letter-spacing: 0.1px;
+      line-height: 1.65;
+      letter-spacing: 0.15px;
       word-wrap: break-word;
     }
 
@@ -1535,15 +1536,38 @@
       background: var(--ink);
       color: var(--paper);
       border-bottom-right-radius: 4px;
+      font-weight: 400;
     }
 
     .chat-msg.assistant {
       align-self: flex-start;
-      background: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.75);
       color: var(--ink);
-      border: 1px solid var(--faint);
+      border: 1px solid rgba(0,0,0,0.06);
       border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
+
+    .chat-msg.assistant b {
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .chat-msg.assistant i {
+      font-style: italic;
+    }
+
+    .chat-msg .chat-katex[data-display="display"] {
+      display: block;
+      margin: 8px 0;
+      overflow-x: auto;
+    }
+
+    .chat-msg .chat-katex[data-display="inline"] {
+      display: inline;
+    }
+
+    .chat-msg .katex { font-size: 0.95em; }
 
     .chat-msg.assistant.typing {
       color: var(--muted);
@@ -2083,9 +2107,68 @@
     }
 
     function formatChatText(raw) {
-      let s = escapeHtml(raw);
+      /* Pull out LaTeX blocks before escaping so delimiters survive.
+         Replace with placeholders and restore after all formatting. */
+      const mathSlots = [];
+      let s = raw;
+
+      function pushMath(tex, display) {
+        mathSlots.push({ tex: tex.trim(), display });
+        return `%%MATH${mathSlots.length - 1}%%`;
+      }
+
+      /* display math: $$...$$ */
+      s = s.replace(/\$\$([\s\S]+?)\$\$/g, (_, t) => pushMath(t, true));
+      /* \[...\] display */
+      s = s.replace(/\\\[([\s\S]+?)\\\]/g, (_, t) => pushMath(t, true));
+      /* \(...\) inline */
+      s = s.replace(/\\\(([\s\S]+?)\\\)/g, (_, t) => pushMath(t, false));
+      /* inline math: $...$ (at least one non-space char) */
+      s = s.replace(/\$([^\s$][^$]*?[^\s$])\$/g, (_, t) => pushMath(t, false));
+      s = s.replace(/\$([^\s$])\$/g, (_, t) => pushMath(t, false));
+
+      /* escape everything */
+      s = escapeHtml(s);
+      /* restore <b> / </b> / <br> tags the LLM may use */
+      s = s.replace(/&lt;b&gt;/g, '<b>').replace(/&lt;\/b&gt;/g, '</b>');
+      s = s.replace(/&lt;br&gt;/g, '<br>');
+      /* convert markdown **bold** to <b> */
+      s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+      /* convert markdown *italic* to <i> */
+      s = s.replace(/\*(.+?)\*/g, '<i>$1</i>');
+      /* strip markdown headers → bold */
+      s = s.replace(/^#{1,4}\s*(.+)$/gm, '<b>$1</b>');
+      /* bullet lines → • */
+      s = s.replace(/^\s*[-*]\s+/gm, '• ');
+      /* numbered list prefixes → strip */
+      s = s.replace(/^\s*\d+\.\s+/gm, '');
+      /* newlines → <br> */
       s = s.replace(/\n/g, '<br>');
+      /* collapse 3+ <br> into 2 */
+      s = s.replace(/(<br>){3,}/g, '<br><br>');
+
+      /* restore math placeholders as <span> elements for KaTeX */
+      s = s.replace(/%%MATH(\d+)%%/g, (_, idx) => {
+        const slot = mathSlots[Number(idx)];
+        const mode = slot.display ? 'display' : 'inline';
+        return `<span class="chat-katex" data-tex="${escapeHtml(slot.tex)}" data-display="${mode}"></span>`;
+      });
+
       return s;
+    }
+
+    function renderChatKaTeX(container) {
+      if (!window.katex) return;
+      container.querySelectorAll('.chat-katex').forEach(el => {
+        try {
+          window.katex.render(el.dataset.tex, el, {
+            throwOnError: false,
+            displayMode: el.dataset.display === 'display',
+          });
+        } catch (e) {
+          el.textContent = el.dataset.tex;
+        }
+      });
     }
 
     function appendChatMsg(role, text) {
@@ -2097,6 +2180,7 @@
       bubble.className = `chat-msg ${role}`;
       bubble.innerHTML = formatChatText(text);
       chatMessages.appendChild(bubble);
+      renderChatKaTeX(bubble);
       chatMessages.scrollTop = chatMessages.scrollHeight;
       return bubble;
     }

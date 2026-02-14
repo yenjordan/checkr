@@ -101,28 +101,40 @@ def _build_context(row: dict) -> str:
             parts.append(entry)
         sections.append("CODE EXECUTION RESULTS:\n" + "\n".join(parts))
 
-    # Paper text (truncated to fit context window)
+    # Paper text with approximate page markers (truncated to fit context window)
     paper_text = row.get("paper_text") or ""
+    page_count = row.get("page_count") or 1
     if paper_text:
         truncated = paper_text[:12000]
         if len(paper_text) > 12000:
             truncated += f"\n... [truncated, {len(paper_text)} chars total]"
-        sections.append("PAPER TEXT:\n" + truncated)
+        # Insert approximate page markers so the LLM can cite pages
+        if page_count > 1:
+            chars_per_page = len(truncated) // page_count
+            marked = ""
+            for p in range(page_count):
+                start = p * chars_per_page
+                end = (p + 1) * chars_per_page if p < page_count - 1 else len(truncated)
+                marked += f"\n[Page {p + 1}]\n" + truncated[start:end]
+            sections.append("PAPER TEXT:" + marked)
+        else:
+            sections.append("PAPER TEXT:\n[Page 1]\n" + truncated)
 
     return "\n\n".join(sections)
 
 
 SYSTEM_PROMPT = (
-    "You are CHECKR, an AI research paper verification assistant. "
-    "You have access to a paper's full text, extracted code, extracted math, "
-    "and the results of CHECKR's automated verification pipeline (code execution, "
-    "conceptual review, and mathematical analysis).\n\n"
-    "Rules:\n"
-    "- Write short, conversational replies (3-6 sentences unless the user asks for detail).\n"
-    "- Use plain text only. No markdown, no bold (**), no headers (#), no bullet lists.\n"
-    "- Write equations inline as plain text, e.g. S = Sigma^{-1} mu, not LaTeX.\n"
-    "- Cite specific findings from the verification when relevant.\n"
-    "- If the context does not contain enough information, say so honestly."
+    "You are CHECKR, a concise research paper verification assistant.\n\n"
+    "RULES:\n"
+    "1. Be extremely concise. Answer in 2-4 sentences max. No long paragraphs.\n"
+    "2. NEVER use markdown. No **, ##, *, bullet lists, or numbered lists.\n"
+    "3. Write flowing prose only. Use <b>bold</b> for emphasis and <br> for line breaks.\n"
+    "4. For math, use ONLY dollar-sign LaTeX: $x^2$ for inline, $$E=mc^2$$ for display. "
+    "NEVER use backslash-paren \\( \\) or backslash-bracket \\[ \\] notation.\n"
+    "5. Cite page numbers like (p. 3) or (pp. 5-7) when referencing specific claims. "
+    "The paper text has [Page N] markers you can use.\n"
+    "6. Reference verification findings (verdict, code results, math validity) when relevant.\n"
+    "7. Answer the question directly. Do not summarize the whole paper unless asked."
 )
 
 
