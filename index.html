@@ -881,6 +881,638 @@
       .paper-stack { width: 220px; height: 290px; }
       .paper-stack .paper-card { width: 220px; height: 290px; }
     }
+
+    /* ═══════════════════════════════════════════
+       ANALYSIS VIEW — full-screen split layout
+       ═══════════════════════════════════════════ */
+    .analysis-view {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      display: flex;
+      background: var(--paper);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .analysis-view.is-active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ── Logo home button ─────────────────────── */
+    .analysis-logo {
+      position: fixed;
+      top: 20px;
+      left: 24px;
+      z-index: 410;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    .analysis-view.is-active .analysis-logo {
+      opacity: 0.8;
+      transform: translateY(0);
+      transition-delay: 0.4s;
+    }
+
+    .analysis-logo:hover {
+      opacity: 1;
+    }
+
+    .analysis-logo img {
+      height: 26px;
+      width: auto;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .analysis-logo:hover img {
+      transform: scale(1.05);
+    }
+
+    /* ── Top banner bar (clips PDF scroll) ───── */
+    .analysis-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 65%;
+      height: 60px;
+      z-index: 405;
+      background: #f0efec;
+    }
+
+    /* ── Left panel — PDF viewer ─────────────── */
+    .analysis-pdf {
+      flex: 0 0 65%;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 72px 40px 40px 40px;
+      background: #f0efec;
+      border-right: 1px solid var(--faint);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.15) transparent;
+      position: relative;
+    }
+
+    .analysis-pdf::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .analysis-pdf::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .analysis-pdf::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.15);
+      border-radius: 3px;
+    }
+
+    .analysis-pdf-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transform-origin: top center;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .analysis-pdf-inner canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 4px;
+      box-shadow:
+        0 1px 4px rgba(0,0,0,0.06),
+        0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ── Zoom controls ───────────────────────── */
+    .analysis-zoom {
+      position: fixed;
+      bottom: 24px;
+      left: calc(65% / 2);
+      transform: translateX(-50%);
+      z-index: 406;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: #fff;
+      border: 1px solid var(--faint);
+      border-radius: 100px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.4s 0.5s ease;
+    }
+
+    .analysis-view.is-active .analysis-zoom {
+      opacity: 1;
+    }
+
+    .analysis-zoom button {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 300;
+      color: var(--muted);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .analysis-zoom button:hover {
+      background: #f5f5f4;
+      color: var(--ink);
+    }
+
+    .analysis-zoom button:active {
+      background: #eeeded;
+    }
+
+    .analysis-zoom-level {
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      min-width: 42px;
+      text-align: center;
+      user-select: none;
+      border-left: 1px solid var(--faint);
+      border-right: 1px solid var(--faint);
+      padding: 0 2px;
+      line-height: 36px;
+    }
+
+    /* page canvases staggered entrance */
+    .analysis-pdf-inner canvas {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .analysis-pdf-inner canvas.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Right panel — Results ───────────────── */
+    .analysis-results {
+      flex: 0 0 35%;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 72px 36px 40px 36px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.12) transparent;
+    }
+
+    .analysis-results::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .analysis-results::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .analysis-results::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.12);
+      border-radius: 3px;
+    }
+
+    .analysis-results-inner {
+      max-width: 480px;
+    }
+
+    /* ── Loading state ───────────────────────── */
+    .analysis-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 160px);
+      text-align: center;
+      gap: 28px;
+    }
+
+    .analysis-loading img {
+      width: 140px;
+      height: auto;
+      opacity: 0;
+      transform: scale(0.9);
+    }
+
+    .analysis-view.is-active .analysis-loading img {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 0.6s 0.5s ease, transform 0.6s 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .analysis-loading-text {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      opacity: 0;
+    }
+
+    .analysis-view.is-active .analysis-loading-text {
+      opacity: 1;
+      transition: opacity 0.5s 0.7s ease;
+    }
+
+    .analysis-loading-sub {
+      font-size: 12px;
+      font-weight: 300;
+      color: rgba(136, 136, 136, 0.6);
+      margin-top: -16px;
+      opacity: 0;
+    }
+
+    .analysis-view.is-active .analysis-loading-sub {
+      opacity: 1;
+      transition: opacity 0.5s 0.85s ease;
+    }
+
+    /* pulsing dots */
+    .analysis-loading-dots {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+    }
+
+    .analysis-view.is-active .analysis-loading-dots {
+      opacity: 1;
+      transition: opacity 0.5s 0.9s ease;
+    }
+
+    .analysis-loading-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: dotPulse 1.4s ease-in-out infinite;
+    }
+
+    .analysis-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .analysis-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotPulse {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* ── Results content (reuses existing card styles) ── */
+    .analysis-results-content {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    .analysis-results-content.visible {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .analysis-verdict-block {
+      margin-bottom: 32px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--faint);
+    }
+
+    .analysis-verdict-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .analysis-verdict-value {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 36px;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+    }
+
+    .analysis-verdict-value.verified { color: #1a7a3a; }
+    .analysis-verdict-value.hard_to_verify { color: #b45309; }
+    .analysis-verdict-value.unknown, .analysis-verdict-value.error { color: #b91c1c; }
+
+    .analysis-summary-text {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-top: 14px;
+    }
+
+    /* staggered section entrances */
+    .analysis-results-content .results-section {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .analysis-results-content.visible .results-section {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .analysis-results-content.visible .results-section:nth-child(2) { transition-delay: 0.1s; }
+    .analysis-results-content.visible .results-section:nth-child(3) { transition-delay: 0.2s; }
+    .analysis-results-content.visible .results-section:nth-child(4) { transition-delay: 0.3s; }
+    .analysis-results-content.visible .results-section:nth-child(5) { transition-delay: 0.4s; }
+
+    /* ── Responsive analysis view ────────────── */
+    @media (max-width: 900px) {
+      .analysis-view {
+        flex-direction: column;
+      }
+
+      .analysis-pdf {
+        flex: none;
+        height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid var(--faint);
+        padding: 70px 24px 24px;
+      }
+
+      .analysis-results {
+        height: 50vh;
+        padding: 24px;
+      }
+
+      .analysis-loading {
+        min-height: calc(50vh - 48px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .analysis-pdf { padding: 24px 16px 16px; }
+      .analysis-results { padding: 20px 16px; }
+      .analysis-logo { top: 16px; left: 16px; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SPARK CHATBOT
+       ═══════════════════════════════════════════ */
+
+    /* ── Spark trigger button ────────────────── */
+    .spark-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 420;
+      width: 48px;
+      height: 48px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+      border-radius: 50%;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .analysis-view.is-active .spark-btn {
+      opacity: 1;
+      pointer-events: auto;
+      transition-delay: 0.6s;
+    }
+
+    .spark-btn:hover {
+      transform: scale(1.12);
+    }
+
+    .spark-btn:active {
+      transform: scale(0.95);
+    }
+
+    .spark-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
+    }
+
+    /* hide spark when chat is open */
+    .spark-btn.hidden {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: scale(0.5);
+    }
+
+    /* ── Chat panel ──────────────────────────── */
+    .chat-panel {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 35%;
+      height: 50vh;
+      z-index: 415;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
+      border-radius: 0;
+    }
+
+    .chat-panel.open {
+      transform: translateY(0);
+    }
+
+    /* ── Video background ────────────────────── */
+    .chat-bg-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    .chat-bg-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(250, 249, 247, 0.82);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* ── Chat header ─────────────────────────── */
+    .chat-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    .chat-header-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 18px;
+      color: var(--ink);
+      letter-spacing: -0.3px;
+    }
+
+    .chat-close {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(0,0,0,0.2);
+      border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .chat-close:hover {
+      border-color: var(--ink);
+      background: rgba(255,255,255,0.8);
+    }
+
+    .chat-close svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--ink);
+      stroke-width: 2;
+    }
+
+    /* ── Chat messages area ───────────────────── */
+    .chat-messages {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.15) transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.15);
+      border-radius: 2px;
+    }
+
+    .chat-welcome {
+      text-align: center;
+      margin: auto 0;
+      padding: 20px;
+    }
+
+    .chat-welcome-icon {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 12px;
+      opacity: 0.7;
+    }
+
+    .chat-welcome-text {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Chat input ──────────────────────────── */
+    .chat-input-area {
+      position: relative;
+      z-index: 2;
+      padding: 16px 20px;
+    }
+
+    .chat-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--faint);
+      border-radius: 100px;
+      padding: 4px 6px 4px 18px;
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .chat-input-wrap:focus-within {
+      border-color: var(--muted);
+      background: rgba(255,255,255,0.85);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--ink);
+      letter-spacing: 0.2px;
+      padding: 8px 0;
+    }
+
+    .chat-input::placeholder {
+      color: var(--muted);
+    }
+
+    .chat-send {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: var(--ink);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s ease;
+    }
+
+    .chat-send:hover {
+      background: #333;
+    }
+
+    .chat-send svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--paper);
+      stroke-width: 2;
+      fill: none;
+    }
+
+    @media (max-width: 900px) {
+      .chat-panel {
+        width: 100%;
+      }
+      .spark-btn { bottom: 16px; right: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -975,6 +1607,79 @@
       </svg>
     </button>
     <div id="resultsContent"></div>
+  </div>
+
+  <!-- ── Analysis View ──────────────────────── -->
+  <div class="analysis-view" id="analysisView">
+    <div class="analysis-bar"></div>
+    <button class="analysis-logo" id="analysisHome">
+      <img src="assets/checkr.png" alt="CHECKR">
+    </button>
+
+    <div class="analysis-pdf" id="analysisPdf">
+      <div class="analysis-pdf-inner" id="analysisPdfInner"></div>
+    </div>
+
+    <div class="analysis-zoom" id="analysisZoom">
+      <button id="zoomOut">&minus;</button>
+      <span class="analysis-zoom-level" id="zoomLevel">100%</span>
+      <button id="zoomIn">+</button>
+    </div>
+
+    <div class="analysis-results">
+      <div class="analysis-results-inner">
+        <!-- Loading state -->
+        <div class="analysis-loading" id="analysisLoading">
+          <img src="assets/loop.gif" alt="Analyzing...">
+          <div class="analysis-loading-text">Analyzing your paper</div>
+          <div class="analysis-loading-sub">This usually takes a minute or two</div>
+          <div class="analysis-loading-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <!-- Results (hidden until loaded) -->
+        <div class="analysis-results-content" id="analysisResultsContent"></div>
+      </div>
+    </div>
+
+    <!-- Spark button -->
+    <button class="spark-btn" id="sparkBtn">
+      <img src="assets/spark.png" alt="Chat">
+    </button>
+
+    <!-- Chat panel -->
+    <div class="chat-panel" id="chatPanel">
+      <video class="chat-bg-video" autoplay loop muted playsinline>
+        <source src="assets/chatbackground.MOV" type="video/mp4">
+      </video>
+      <div class="chat-bg-overlay"></div>
+
+      <div class="chat-header">
+        <span class="chat-header-title">Chat with CHECKR</span>
+        <button class="chat-close" id="chatClose">
+          <svg viewBox="0 0 24 24" fill="none">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-welcome">
+          <img class="chat-welcome-icon" src="assets/spark.png" alt="">
+          <div class="chat-welcome-text">Ask me anything about your paper.</div>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-wrap">
+          <input class="chat-input" id="chatInput" type="text" placeholder="Ask a question..." autocomplete="off">
+          <button class="chat-send" id="chatSend">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module">
@@ -1181,12 +1886,46 @@
       });
     }
 
-    /* ── Results panel elements ──────────────── */
+    /* ── Elements ──────────────────────────────── */
     const checkBtn = document.getElementById('checkBtn');
     const resultsPanel = document.getElementById('resultsPanel');
     const resultsClose = document.getElementById('resultsClose');
     const resultsContent = document.getElementById('resultsContent');
     let currentFile = null;
+
+    /* ── Analysis view elements ────────────────── */
+    const analysisView = document.getElementById('analysisView');
+    const analysisHome = document.getElementById('analysisHome');
+    const analysisPdf = document.getElementById('analysisPdf');
+    const analysisPdfInner = document.getElementById('analysisPdfInner');
+    const analysisLoading = document.getElementById('analysisLoading');
+    const analysisResultsContent = document.getElementById('analysisResultsContent');
+
+    /* ── Zoom controls ────────────────────────── */
+    const zoomInBtn = document.getElementById('zoomIn');
+    const zoomOutBtn = document.getElementById('zoomOut');
+    const zoomLevelEl = document.getElementById('zoomLevel');
+    let zoomScale = 1;
+    const ZOOM_STEP = 0.15;
+    const ZOOM_MIN = 0.4;
+    const ZOOM_MAX = 2.5;
+
+    function applyZoom() {
+      analysisPdfInner.style.transform = `scale(${zoomScale})`;
+      zoomLevelEl.textContent = `${Math.round(zoomScale * 100)}%`;
+      zoomOutBtn.disabled = zoomScale <= ZOOM_MIN;
+      zoomInBtn.disabled = zoomScale >= ZOOM_MAX;
+    }
+
+    zoomInBtn.addEventListener('click', () => {
+      zoomScale = Math.min(ZOOM_MAX, zoomScale + ZOOM_STEP);
+      applyZoom();
+    });
+
+    zoomOutBtn.addEventListener('click', () => {
+      zoomScale = Math.max(ZOOM_MIN, zoomScale - ZOOM_STEP);
+      applyZoom();
+    });
 
     resultsClose.addEventListener('click', () => {
       resultsPanel.classList.remove('open');
@@ -1210,6 +1949,87 @@
       }
     });
 
+    /* ── Render all PDF pages into analysis view ── */
+    async function renderFullPdf(file) {
+      analysisPdfInner.innerHTML = '';
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const numPages = pdf.numPages;
+
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdf.getPage(i);
+        const scale = 2;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({
+          canvasContext: canvas.getContext('2d'),
+          viewport,
+        }).promise;
+
+        analysisPdfInner.appendChild(canvas);
+
+        /* stagger reveal */
+        setTimeout(() => {
+          canvas.classList.add('visible');
+        }, 200 + i * 120);
+      }
+    }
+
+    /* ── Open analysis view ───────────────────── */
+    function openAnalysisView() {
+      /* reset state */
+      analysisLoading.style.display = '';
+      analysisResultsContent.innerHTML = '';
+      analysisResultsContent.classList.remove('visible');
+
+      /* close overlay */
+      closeOverlay();
+
+      /* small delay so overlay closes first */
+      setTimeout(() => {
+        analysisView.classList.add('is-active');
+        document.body.style.overflow = 'hidden';
+      }, 100);
+    }
+
+    function closeAnalysisView() {
+      analysisView.classList.remove('is-active');
+      document.body.style.overflow = '';
+      analysisPdfInner.innerHTML = '';
+      zoomScale = 1;
+      applyZoom();
+      closeChatPanel();
+    }
+
+    analysisHome.addEventListener('click', closeAnalysisView);
+
+    /* ── Spark chatbot ────────────────────────── */
+    const sparkBtn = document.getElementById('sparkBtn');
+    const chatPanel = document.getElementById('chatPanel');
+    const chatClose = document.getElementById('chatClose');
+    const chatInput = document.getElementById('chatInput');
+    const chatSend = document.getElementById('chatSend');
+
+    sparkBtn.addEventListener('click', () => {
+      chatPanel.classList.add('open');
+      sparkBtn.classList.add('hidden');
+      setTimeout(() => chatInput.focus(), 400);
+    });
+
+    chatClose.addEventListener('click', () => {
+      chatPanel.classList.remove('open');
+      sparkBtn.classList.remove('hidden');
+    });
+
+    /* close chat when leaving analysis view */
+    function closeChatPanel() {
+      chatPanel.classList.remove('open');
+      sparkBtn.classList.remove('hidden');
+    }
+
     /* ── Check Paper button ──────────────────── */
     checkBtn.addEventListener('click', async () => {
       if (!currentFile) return;
@@ -1217,6 +2037,21 @@
       checkBtn.disabled = true;
       checkBtn.classList.add('loading');
       checkBtn.querySelector('.loading-label').style.display = 'inline';
+
+      /* open analysis view immediately */
+      openAnalysisView();
+
+      /* render PDF pages in left panel */
+      if (currentFile.type === 'application/pdf' || currentFile.name.endsWith('.pdf')) {
+        renderFullPdf(currentFile);
+      }
+
+      /* ensure loading state shows for at least 2s */
+      const loadingStart = Date.now();
+      const MIN_LOADING_MS = 2000;
+
+      let result = null;
+      let error = null;
 
       try {
         const formData = new FormData();
@@ -1230,21 +2065,34 @@
         const data = await res.json();
 
         if (!res.ok) {
-          renderError(data.error || 'Something went wrong.');
+          error = data.error || 'Something went wrong.';
         } else {
-          renderResults(data);
+          result = data;
         }
       } catch (err) {
-        renderError(err.message);
-      } finally {
-        checkBtn.classList.remove('loading');
-        checkBtn.querySelector('.loading-label').style.display = 'none';
-        checkBtn.disabled = false;
+        error = err.message;
       }
+
+      /* wait remaining time so loading animation is visible */
+      const elapsed = Date.now() - loadingStart;
+      if (elapsed < MIN_LOADING_MS) {
+        await new Promise(r => setTimeout(r, MIN_LOADING_MS - elapsed));
+      }
+
+      /* now show results or error */
+      if (error) {
+        showAnalysisError(error);
+      } else {
+        showAnalysisResults(result);
+      }
+
+      checkBtn.classList.remove('loading');
+      checkBtn.querySelector('.loading-label').style.display = 'none';
+      checkBtn.disabled = false;
     });
 
-    /* ── Render results ──────────────────────── */
-    function renderResults(data) {
+    /* ── Show results in analysis view ────────── */
+    function showAnalysisResults(data) {
       const verdictLabel = {
         verified: 'Verified',
         hard_to_verify: 'Hard to Verify',
@@ -1252,11 +2100,11 @@
       };
 
       let html = `
-        <div class="results-header">
-          <div class="results-filename">${data.filename || 'Paper'} &middot; ${data.pages || '?'} pages</div>
-          <div class="results-verdict ${data.verdict}">${verdictLabel[data.verdict] || data.verdict}</div>
+        <div class="analysis-verdict-block">
+          <div class="analysis-verdict-label">Verdict</div>
+          <div class="analysis-verdict-value ${data.verdict}">${verdictLabel[data.verdict] || data.verdict}</div>
+          <div class="analysis-summary-text">${data.summary || 'No summary available.'}</div>
         </div>
-        <div class="results-summary">${data.summary || 'No summary available.'}</div>
       `;
 
       /* Planner steps */
@@ -1330,19 +2178,33 @@
         </div>`;
       }
 
-      resultsContent.innerHTML = html;
-      resultsPanel.classList.add('open');
+      /* hide loading, show results */
+      analysisLoading.style.display = 'none';
+      analysisResultsContent.innerHTML = html;
+
+      /* trigger entrance animation */
+      requestAnimationFrame(() => {
+        analysisResultsContent.classList.add('visible');
+      });
     }
 
-    function renderError(msg) {
-      resultsContent.innerHTML = `
-        <div class="results-header">
-          <div class="results-verdict error">Error</div>
+    function showAnalysisError(msg) {
+      analysisLoading.style.display = 'none';
+      analysisResultsContent.innerHTML = `
+        <div class="analysis-verdict-block">
+          <div class="analysis-verdict-label">Result</div>
+          <div class="analysis-verdict-value error">Error</div>
+          <div class="analysis-summary-text">${escapeHtml(msg)}</div>
         </div>
-        <div class="results-summary">${escapeHtml(msg)}</div>
       `;
-      resultsPanel.classList.add('open');
+      requestAnimationFrame(() => {
+        analysisResultsContent.classList.add('visible');
+      });
     }
+
+    /* ── Legacy results panel (kept for backwards compat) ── */
+    function renderResults(data) { showAnalysisResults(data); }
+    function renderError(msg) { showAnalysisError(msg); }
 
     function escapeHtml(str) {
       const div = document.createElement('div');
