@@ -26,3 +26,15 @@ class CodeChunk(BaseModel):
 
 class CodeExtractorOutput(BaseModel):
     chunks: List[CodeChunk]
+
+class CodeExecutionResult(BaseModel):
+    code: str
+    language: str
+    ran_successfully: bool
+    stdout: str
+    stderr: str
+    analysis: str
+
+class ReplannerOutput(BaseModel):
+    results: List[CodeExecutionResult]
+    summary: str
