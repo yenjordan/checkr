@@ -13,3 +13,8 @@ class AgentFState(TypedDict):
 
 class PlannerOutput(BaseModel):
     steps: List[str]
+
+class CodingAnalysisOutput(BaseModel):
+    is_conceptually_correct: bool
+    issues: List[str]
+    explanation: str
