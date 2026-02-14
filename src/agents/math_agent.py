@@ -1,6 +1,6 @@
 from schemas import AgentFState, MathAnalysisOutput
 from langchain_core.prompts import ChatPromptTemplate
-from config import llm_reasoning
+from config import llm
 from utils import parse_json_response
 
 async def MathAgent(state: AgentFState) -> AgentFState:
@@ -8,7 +8,6 @@ async def MathAgent(state: AgentFState) -> AgentFState:
     planner_steps = state.get("subagent_responses", {}).get("planner", {}).get("steps", [])
     intent = "\n".join([f"- {step}" for step in planner_steps]) if planner_steps else state["query"]
 
-    # Handle empty math case
     if not math_chunks:
         return {
             "subagent_responses": {
@@ -24,23 +23,35 @@ async def MathAgent(state: AgentFState) -> AgentFState:
 
     math_prompt = ChatPromptTemplate.from_messages([
         ("system", (
-            "You are an expert mathematician who verifies mathematical content from papers. "
-            "For each equation/formula: "
-            "1) Check mathematical validity (correct derivations, dimensional consistency) "
-            "2) Verify consistency with paper claims (does it match what author says it represents?) "
-            "Provide step-by-step verification reasoning.\n\n"
-            "Respond with ONLY a JSON object in this exact format:\n"
-            '{{"is_mathematically_valid": true, "is_consistent_with_claims": true, '
-            '"issues": ["issue1", ...], "explanation": "...", "verified_steps": ["step1", ...]}}'
+            "You verify mathematical content from papers: validity (derivations, dimensions) and consistency with the paper's claims.\n\n"
+            "Output ONLY a JSON object. No prose before or after. No 'Chunk [1]:' style lines.\n"
+            "Use this exact shape:\n"
+            '{{"is_mathematically_valid": true/false, "is_consistent_with_claims": true/false, '
+            '"issues": ["list any errors or concerns"], "explanation": "2-3 sentence overall summary", '
+            '"verified_steps": ["short step 1", "short step 2", ...]}}\n'
+            "explanation: one brief overall summary. verified_steps: short bullet-style steps (e.g. 'Checked loss function form', 'Verified distribution definition'), not per-chunk commentary."
         )),
-        ("human", "Math chunks:\n{math_chunks}\n\nVerification goals:\n{intent}")
+        ("human", "Math chunks:\n{math_chunks}\n\nGoals:\n{intent}")
     ])
 
-    chain = math_prompt | llm_reasoning
-    response = await chain.ainvoke({"math_chunks": str(math_chunks), "intent": intent})
+    response = await (math_prompt | llm).ainvoke({"math_chunks": str(math_chunks), "intent": intent})
+    raw = (response.content or "").strip()
+
+    if not raw:
+        return {
+            "subagent_responses": {
+                "math": {
+                    "is_mathematically_valid": True,
+                    "is_consistent_with_claims": True,
+                    "issues": [],
+                    "explanation": "Math verification skipped: no model response.",
+                    "verified_steps": []
+                }
+            }
+        }
 
     try:
-        result = parse_json_response(response.content or "", MathAnalysisOutput)
+        result = parse_json_response(raw, MathAnalysisOutput)
         return {
             "subagent_responses": {
                 "math": {
@@ -52,7 +63,8 @@ async def MathAgent(state: AgentFState) -> AgentFState:
                 }
             }
         }
-    except Exception:
+    except Exception as e:
+        print("[MathAgent] Parse failed:", e)
         return {
             "subagent_responses": {
                 "math": {

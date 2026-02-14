@@ -75,6 +75,7 @@ async def check_paper(file: UploadFile = File(...)):
             "summary": structured.get("summary", ""),
             "code_results": subagent.get("replanner", {}).get("results", []),
             "math": subagent.get("math", {}),
+            "math_chunks": subagent.get("math_extractor", {}).get("chunks", []),
             "coding_review": subagent.get("coding", {}),
             "planner_steps": subagent.get("planner", {}).get("steps", []),
             "pages": parsed["pages"],

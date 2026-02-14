@@ -5,6 +5,7 @@ from utils import parse_json_response
 
 async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
     paper_text = state["query"]
+    print("[CodeExtractor] input length:", len(paper_text), "chars")
 
     extractor_prompt = ChatPromptTemplate.from_messages([
         ("system", (
@@ -27,9 +28,10 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
 
     chain = extractor_prompt | llm
     response = await chain.ainvoke({"paper_text": paper_text})
-
+    raw = response.content or ""
+    
     try:
-        result = parse_json_response(response.content, CodeExtractorOutput)
+        result = parse_json_response(raw, CodeExtractorOutput)
         chunks = [
             {"code": chunk.code, "language": chunk.language, "context": chunk.context}
             for chunk in result.chunks

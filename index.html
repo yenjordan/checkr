@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -838,6 +839,16 @@
       line-height: 1.5;
       padding: 4px 0;
     }
+
+    .math-chunk-latex-wrap {
+      margin: 12px 0;
+      padding: 12px 16px;
+      background: rgba(0,0,0,0.03);
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    .math-chunk-latex-wrap .katex { font-size: 1.05em; }
 
     /* ── Responsive results panel ─────────── */
     @media (max-width: 768px) {
@@ -1682,6 +1693,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
   <script type="module">
     import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
@@ -2099,6 +2111,7 @@
         unknown: 'Unknown',
       };
 
+      let mathChunkLatex = [];
       let html = `
         <div class="analysis-verdict-block">
           <div class="analysis-verdict-label">Verdict</div>
@@ -2149,9 +2162,28 @@
               </span>
             </div>
             <div class="result-card-analysis">${cr.explanation || ''}</div>
-            ${cr.issues?.length ? cr.issues.map(i => `<div class="math-issue">${i}</div>`).join('') : ''}
+            ${cr.issues?.length ? cr.issues.map(i => `<div class="math-issue">${escapeHtml(i)}</div>`).join('') : ''}
           </div>
         </div>`;
+      }
+
+      /* math chunks */
+      if (data.math_chunks && data.math_chunks.length) {
+        html += `<div class="results-section">
+          <div class="results-section-title">Math content</div>`;
+        data.math_chunks.forEach((chunk, i) => {
+          mathChunkLatex.push(chunk.latex || '');
+          const typeLabel = (chunk.equation_type || 'equation').replace(/_/g, ' ');
+          html += `
+            <div class="result-card">
+              <div class="result-card-header">
+                <span class="result-card-lang">${escapeHtml(typeLabel)} &middot; Chunk ${i + 1}</span>
+              </div>
+              <div class="math-chunk-latex-wrap"><span id="math-latex-${i}" class="math-chunk-latex"></span></div>
+              <div class="result-card-analysis">${escapeHtml(chunk.context || '')}</div>
+            </div>`;
+        });
+        html += `</div>`;
       }
 
       /* Math verification */
@@ -2169,10 +2201,10 @@
               </span>
             </div>
             <div class="result-card-analysis">${m.explanation}</div>
-            ${m.issues?.length ? `<div class="math-issues">${m.issues.map(i => `<div class="math-issue">${i}</div>`).join('')}</div>` : ''}
+            ${m.issues?.length ? `<div class="math-issues">${m.issues.map(i => `<div class="math-issue">${escapeHtml(i)}</div>`).join('')}</div>` : ''}
             ${m.verified_steps?.length ? `
               <ul class="math-steps" style="margin-top:12px">
-                ${m.verified_steps.map(s => `<li>${s}</li>`).join('')}
+                ${m.verified_steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
               </ul>` : ''}
           </div>
         </div>`;
@@ -2181,6 +2213,20 @@
       /* hide loading, show results */
       analysisLoading.style.display = 'none';
       analysisResultsContent.innerHTML = html;
+
+      /* render latex */
+      if (mathChunkLatex.length && window.katex) {
+        mathChunkLatex.forEach((latex, i) => {
+          const el = document.getElementById('math-latex-' + i);
+          if (el) {
+            try {
+              window.katex.render(latex, el, { throwOnError: false, displayMode: true });
+            } catch (e) {
+              el.textContent = latex;
+            }
+          }
+        });
+      }
 
       /* trigger entrance animation */
       requestAnimationFrame(() => {

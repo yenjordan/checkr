@@ -20,15 +20,11 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
         ("human", "Extract all mathematical content from:\n\n{paper_text}")
     ])
 
-    chain = extractor_prompt | llm
-    response = await chain.ainvoke({"paper_text": paper_text})
+    raw = (await (extractor_prompt | llm).ainvoke({"paper_text": paper_text})).content or ""
 
     try:
-        result = parse_json_response(response.content, MathExtractorOutput)
-        chunks = [
-            {"latex": chunk.latex, "context": chunk.context, "equation_type": chunk.equation_type}
-            for chunk in result.chunks
-        ]
+        result = parse_json_response(raw, MathExtractorOutput, llm=llm)
+        chunks = [{"latex": c.latex, "context": c.context, "equation_type": c.equation_type} for c in result.chunks]
     except Exception:
         chunks = []
 
