@@ -18,3 +18,11 @@ class CodingAnalysisOutput(BaseModel):
     is_conceptually_correct: bool
     issues: List[str]
     explanation: str
+
+class CodeChunk(BaseModel):
+    code: str
+    language: str
+    context: str
+
+class CodeExtractorOutput(BaseModel):
+    chunks: List[CodeChunk]
