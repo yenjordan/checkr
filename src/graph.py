@@ -1,7 +1,9 @@
 from langgraph.graph import StateGraph, END, START
 from agents.planner import PlannerAgent
-from agents.coding_agent import CodingAgent
 from agents.code_extractor import CodeExtractorAgent
+from agents.math_extractor import MathExtractorAgent
+from agents.coding_agent import CodingAgent
+from agents.math_agent import MathAgent
 from agents.replanner import ReplannerAgent
 from schemas import AgentFState
 
@@ -61,16 +63,22 @@ workflow = StateGraph(AgentFState, config={})
 
 workflow.add_node("planner", PlannerAgent)
 workflow.add_node("code_extractor", CodeExtractorAgent)
+workflow.add_node("math_extractor", MathExtractorAgent)
 workflow.add_node("coding", CodingAgent)
+workflow.add_node("math", MathAgent)
 workflow.add_node("replanner", ReplannerAgent)
 workflow.add_node("decrement_retries", decrement_retries)
 workflow.add_node("mark_hard_to_verify", mark_hard_to_verify)
 workflow.add_node("mark_success", mark_success)
 
+# Flow: planner → [extractors in parallel] → [analyzers in parallel] → replanner
 workflow.add_edge(START, "planner")
 workflow.add_edge("planner", "code_extractor")
+workflow.add_edge("planner", "math_extractor")
 workflow.add_edge("code_extractor", "coding")
+workflow.add_edge("math_extractor", "math")
 workflow.add_edge("coding", "replanner")
+workflow.add_edge("math", "replanner")
 
 workflow.add_conditional_edges(
     "replanner",

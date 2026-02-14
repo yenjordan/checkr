@@ -38,3 +38,18 @@ class CodeExecutionResult(BaseModel):
 class ReplannerOutput(BaseModel):
     results: List[CodeExecutionResult]
     summary: str
+
+class MathChunk(BaseModel):
+    latex: str              # The equation (LaTeX or plain text)
+    context: str            # Surrounding text explaining the equation
+    equation_type: str      # "definition", "theorem", "loss_function", "derivation", etc.
+
+class MathExtractorOutput(BaseModel):
+    chunks: List[MathChunk]
+
+class MathAnalysisOutput(BaseModel):
+    is_mathematically_valid: bool
+    is_consistent_with_claims: bool
+    issues: List[str]
+    explanation: str
+    verified_steps: List[str]  # Step-by-step verification reasoning
