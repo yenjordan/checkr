@@ -516,6 +516,59 @@
       opacity: 1;
     }
 
+    /* ── New card entrance ────────────────────── */
+    .paper-card.entering {
+      opacity: 0 !important;
+      animation: none !important;
+    }
+
+    .paper-card.entering.entered {
+      opacity: 1 !important;
+      animation: cardDrop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+    }
+
+    @keyframes cardDrop {
+      0% {
+        opacity: 0;
+        transform: translate(var(--drop-x, 0px), -180px) rotate(-10deg) scale(0.75);
+        filter: blur(3px);
+        box-shadow: 0 0 0 rgba(0,0,0,0);
+      }
+      35% {
+        opacity: 1;
+        filter: blur(0px);
+      }
+      65% {
+        transform: translate(var(--drop-x, 0px), calc(var(--drop-y, 0px) + 8px))
+                   rotate(calc(var(--drop-rz, 0deg) + 2deg)) scale(1.03);
+        box-shadow:
+          0 2px 8px rgba(0,0,0,0.06),
+          0 10px 30px rgba(0,0,0,0.12);
+      }
+      82% {
+        transform: translate(var(--drop-x, 0px), calc(var(--drop-y, 0px) - 3px))
+                   rotate(calc(var(--drop-rz, 0deg) - 0.5deg)) scale(1.0);
+      }
+      100% {
+        opacity: 1;
+        filter: blur(0px);
+        transform: translate(var(--drop-x, 0px), var(--drop-y, 0px))
+                   rotate(var(--drop-rz, 0deg)) scale(1.0);
+        box-shadow:
+          0 4px 12px rgba(0,0,0,0.08),
+          0 28px 70px rgba(0,0,0,0.20);
+      }
+    }
+
+    .paper-card canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+      user-select: none;
+    }
+
     /* ── Keyframes ───────────────────────────── */
     @keyframes fadeIn {
       to { opacity: 1; }
@@ -631,7 +684,10 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+
     /* ── Elements ──────────────────────────────── */
     const getStartedBtn = document.getElementById('getStartedBtn');
     const navGetStarted = document.getElementById('navGetStarted');
@@ -639,11 +695,29 @@
     const overlayBackdrop = document.getElementById('overlayBackdrop');
     const overlayClose = document.getElementById('overlayClose');
     const paperStack = document.getElementById('paperStack');
-    const cards = paperStack.querySelectorAll('.paper-card');
     const fileInput = document.getElementById('fileInput');
     const uploadArea = document.getElementById('uploadArea');
     const uploadLabel = document.getElementById('uploadLabel');
     const uploadFilename = document.getElementById('uploadFilename');
+
+    /* ── Live card list + transforms ──────────── */
+    let allCards = [...paperStack.querySelectorAll('.paper-card')];
+    let baseTransforms = [
+      { tx: -20, ty: -16, rz: -4 },
+      { tx: 0,   ty: 0,   rz: 0 },
+      { tx: 20,  ty: 16,  rz: 4 },
+    ];
+
+    function rebuildTransforms() {
+      const n = allCards.length;
+      baseTransforms = allCards.map((_, i) => {
+        const center = (n - 1) / 2;
+        const offset = i - center;
+        return { tx: offset * 20, ty: offset * 16, rz: offset * 4 };
+      });
+      /* update z-index so later cards stack on top */
+      allCards.forEach((card, i) => { card.style.zIndex = i + 1; });
+    }
 
     /* ── Overlay open/close ───────────────────── */
     function openOverlay() {
@@ -666,12 +740,6 @@
     });
 
     /* ── 3D mouse-tracking tilt on stacked cards ─ */
-    const baseTransforms = [
-      { tx: -20, ty: -16, rz: -4 },
-      { tx: 0,   ty: 0,   rz: 0 },
-      { tx: 20,  ty: 16,  rz: 4 },
-    ];
-
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
     let rafId = null;
@@ -691,21 +759,19 @@
       const cx = stackRect.left + stackRect.width / 2;
       const cy = stackRect.top + stackRect.height / 2;
 
-      /* normalised distance from stack center */
       const dx = (mouseX - cx) / (window.innerWidth * 0.5);
       const dy = (mouseY - cy) / (window.innerHeight * 0.5);
 
       const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
-      cards.forEach((card, i) => {
+      allCards.forEach((card, i) => {
+        if (card.classList.contains('entering') && !card.classList.contains('entered')) return;
         const base = baseTransforms[i];
+        if (!base) return;
 
-        /* tilt toward cursor — stronger for top cards */
         const intensity = 0.6 + (i * 0.25);
         const rx = clamp(-dy * 16 * intensity, -22, 22);
         const ry = clamp(dx * 16 * intensity, -22, 22);
-
-        /* shift toward cursor */
         const shiftX = clamp(dx * 10 * intensity, -16, 16);
         const shiftY = clamp(dy * 7 * intensity, -12, 12);
 
@@ -716,21 +782,99 @@
       });
     }
 
-    /* reset on mouse leave */
     document.addEventListener('mouseleave', () => {
-      cards.forEach((card, i) => {
+      allCards.forEach((card, i) => {
         const b = baseTransforms[i];
+        if (!b) return;
         card.style.transform = `translate(${b.tx}px, ${b.ty}px) rotate(${b.rz}deg) rotateX(0) rotateY(0)`;
       });
     });
 
+    /* ── Render PDF first page to canvas ──────── */
+    async function renderPdfThumbnail(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+
+      const scale = 2;
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: canvas.getContext('2d'),
+        viewport,
+      }).promise;
+
+      return canvas;
+    }
+
+    /* ── Add uploaded paper to stack ──────────── */
+    async function addPaperToStack(file) {
+      const canvas = await renderPdfThumbnail(file);
+
+      /* build the card */
+      const card = document.createElement('div');
+      card.className = 'paper-card entering';
+      card.appendChild(canvas);
+
+      const label = document.createElement('span');
+      label.className = 'paper-label-stack';
+      label.textContent = file.name.replace(/\.pdf$/i, '');
+      card.appendChild(label);
+
+      /* add to DOM */
+      paperStack.appendChild(card);
+      allCards.push(card);
+      rebuildTransforms();
+
+      /* spread existing cards to their new positions */
+      allCards.forEach((c, i) => {
+        if (c === card) return;
+        const b = baseTransforms[i];
+        c.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease';
+        c.style.transform = `translate(${b.tx}px, ${b.ty}px) rotate(${b.rz}deg)`;
+      });
+
+      /* animate new card dropping in */
+      const b = baseTransforms[allCards.length - 1];
+
+      /* override the @keyframes 100% transform with the correct stack position */
+      card.style.setProperty('--drop-x', `${b.tx}px`);
+      card.style.setProperty('--drop-y', `${b.ty}px`);
+      card.style.setProperty('--drop-rz', `${b.rz}deg`);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          card.classList.add('entered');
+
+          /* clean up after animation */
+          card.addEventListener('animationend', () => {
+            card.classList.remove('entering', 'entered');
+            card.style.transform = `translate(${b.tx}px, ${b.ty}px) rotate(${b.rz}deg)`;
+            card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08), 0 28px 70px rgba(0,0,0,0.20)';
+            card.style.opacity = '1';
+            /* restore normal transition for mouse tilt */
+            allCards.forEach(c => {
+              c.style.transition = 'transform 0.12s ease-out, box-shadow 0.4s ease';
+            });
+          }, { once: true });
+        });
+      });
+    }
+
     /* ── File upload ──────────────────────────── */
-    fileInput.addEventListener('change', () => {
+    fileInput.addEventListener('change', async () => {
       if (fileInput.files.length > 0) {
-        const name = fileInput.files[0].name;
+        const file = fileInput.files[0];
         uploadArea.classList.add('has-file');
         uploadLabel.textContent = 'Change File';
-        uploadFilename.textContent = name;
+        uploadFilename.textContent = file.name;
+
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          await addPaperToStack(file);
+        }
       }
     });
   </script>
