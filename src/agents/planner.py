@@ -4,6 +4,8 @@ from config import llm
 from utils import parse_json_response
 
 async def PlannerAgent(state: AgentFState) -> AgentFState:
+    query = state["query"]
+
     planner_prompt = ChatPromptTemplate.from_messages([
         ("system", (
             "You are a helpful assistant who generates plans to achieve user goals. "
@@ -16,7 +18,7 @@ async def PlannerAgent(state: AgentFState) -> AgentFState:
     ])
 
     chain = planner_prompt | llm
-    response = await chain.ainvoke({"query": state["query"]})
+    response = await chain.ainvoke({"query": query})
 
     try:
         result = parse_json_response(response.content or "", PlannerOutput)

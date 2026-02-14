@@ -32,7 +32,7 @@ class CodeChunk(BaseModel):
     context: str
 
 class CodeExtractorOutput(BaseModel):
-    chunks: List[CodeChunk]
+    chunks: List[CodeChunk] = []
 
 class CodeExecutionResult(BaseModel):
     code: str
@@ -52,7 +52,7 @@ class MathChunk(BaseModel):
     equation_type: str      # "definition", "theorem", "loss_function", "derivation", etc.
 
 class MathExtractorOutput(BaseModel):
-    chunks: List[MathChunk]
+    chunks: List[MathChunk] = []
 
 class MathAnalysisOutput(BaseModel):
     is_mathematically_valid: bool

@@ -4,9 +4,24 @@ from config import llm
 from utils import parse_json_response
 
 async def CodingAgent(state: AgentFState) -> AgentFState:
-    code_unit = state["query"]
+    code_chunks = state.get("subagent_responses", {}).get("code_extractor", {}).get("chunks", [])
     planner_steps = state.get("subagent_responses", {}).get("planner", {}).get("steps", [])
     intent = "\n".join([f"- {step}" for step in planner_steps]) if planner_steps else state["query"]
+
+    if not code_chunks:
+        return {
+            "subagent_responses": {
+                "coding": {
+                    "is_conceptually_correct": False,
+                    "issues": ["No code was extracted from the paper. Cannot perform conceptual review."],
+                    "explanation": "Code extractor returned no chunks.",
+                }
+            }
+        }
+
+    code_unit = "\n\n---\n\n".join(c.get("code", "") for c in code_chunks[:10])
+    if len(code_chunks) > 10:
+        code_unit += f"\n\n... and {len(code_chunks) - 10} more chunks"
 
     coding_prompt = ChatPromptTemplate.from_messages([
         ("system", (
