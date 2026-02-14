@@ -112,25 +112,41 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
 
     chain = analysis_prompt | llm_reasoning
     response = await chain.ainvoke({"results": results_text})
-    analysis = parse_json_response(response.content, ReplannerOutput)
 
-    final_results = []
-    for i, r in enumerate(execution_results):
-        matching = analysis.results[i] if i < len(analysis.results) else None
-        final_results.append({
-            "code": r["code"],
-            "language": r["language"],
-            "ran_successfully": r["ran_successfully"],
-            "stdout": r["stdout"],
-            "stderr": r["stderr"],
-            "analysis": matching.analysis if matching else "No analysis available",
-        })
+    # Try to parse LLM analysis; fall back to execution results alone
+    try:
+        analysis = parse_json_response(response.content or "", ReplannerOutput)
+        final_results = []
+        for i, r in enumerate(execution_results):
+            matching = analysis.results[i] if i < len(analysis.results) else None
+            final_results.append({
+                "code": r["code"],
+                "language": r["language"],
+                "ran_successfully": r["ran_successfully"],
+                "stdout": r["stdout"],
+                "stderr": r["stderr"],
+                "analysis": matching.analysis if matching else "No analysis available",
+            })
+        summary = analysis.summary
+    except Exception:
+        final_results = []
+        for r in execution_results:
+            final_results.append({
+                "code": r["code"],
+                "language": r["language"],
+                "ran_successfully": r["ran_successfully"],
+                "stdout": r["stdout"],
+                "stderr": r["stderr"],
+                "analysis": "Passed" if r["ran_successfully"] else f"Failed: {r['stderr'][:200]}",
+            })
+        passed = sum(1 for r in execution_results if r["ran_successfully"])
+        summary = f"{passed}/{len(execution_results)} code chunks executed successfully."
 
     return {
         "subagent_responses": {
             "replanner": {
                 "results": final_results,
-                "summary": analysis.summary,
+                "summary": summary,
             }
         }
     }

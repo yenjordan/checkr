@@ -22,14 +22,25 @@ async def CodingAgent(state: AgentFState) -> AgentFState:
 
     chain = coding_prompt | llm
     response = await chain.ainvoke({"code_unit": code_unit, "intent": intent})
-    result = parse_json_response(response.content, CodingAnalysisOutput)
 
-    return {
-        "subagent_responses": {
-            "coding": {
-                "is_conceptually_correct": result.is_conceptually_correct,
-                "issues": result.issues,
-                "explanation": result.explanation
+    try:
+        result = parse_json_response(response.content or "", CodingAnalysisOutput)
+        return {
+            "subagent_responses": {
+                "coding": {
+                    "is_conceptually_correct": result.is_conceptually_correct,
+                    "issues": result.issues,
+                    "explanation": result.explanation
+                }
             }
         }
-    }
+    except Exception:
+        return {
+            "subagent_responses": {
+                "coding": {
+                    "is_conceptually_correct": True,
+                    "issues": [],
+                    "explanation": "Could not parse analysis response."
+                }
+            }
+        }

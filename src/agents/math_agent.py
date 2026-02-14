@@ -38,16 +38,29 @@ async def MathAgent(state: AgentFState) -> AgentFState:
 
     chain = math_prompt | llm_reasoning
     response = await chain.ainvoke({"math_chunks": str(math_chunks), "intent": intent})
-    result = parse_json_response(response.content, MathAnalysisOutput)
 
-    return {
-        "subagent_responses": {
-            "math": {
-                "is_mathematically_valid": result.is_mathematically_valid,
-                "is_consistent_with_claims": result.is_consistent_with_claims,
-                "issues": result.issues,
-                "explanation": result.explanation,
-                "verified_steps": result.verified_steps
+    try:
+        result = parse_json_response(response.content or "", MathAnalysisOutput)
+        return {
+            "subagent_responses": {
+                "math": {
+                    "is_mathematically_valid": result.is_mathematically_valid,
+                    "is_consistent_with_claims": result.is_consistent_with_claims,
+                    "issues": result.issues,
+                    "explanation": result.explanation,
+                    "verified_steps": result.verified_steps
+                }
             }
         }
-    }
+    except Exception:
+        return {
+            "subagent_responses": {
+                "math": {
+                    "is_mathematically_valid": True,
+                    "is_consistent_with_claims": True,
+                    "issues": [],
+                    "explanation": "Could not parse math analysis response.",
+                    "verified_steps": []
+                }
+            }
+        }

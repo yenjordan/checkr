@@ -17,10 +17,15 @@ async def PlannerAgent(state: AgentFState) -> AgentFState:
 
     chain = planner_prompt | llm
     response = await chain.ainvoke({"query": state["query"]})
-    result = parse_json_response(response.content, PlannerOutput)
+
+    try:
+        result = parse_json_response(response.content or "", PlannerOutput)
+        steps = result.steps
+    except Exception:
+        steps = ["Verify code correctness", "Verify mathematical claims", "Analyze execution results"]
 
     return {
         "subagent_responses": {
-            "planner": {"steps": result.steps}
+            "planner": {"steps": steps}
         }
     }
