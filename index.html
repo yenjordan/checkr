@@ -2615,10 +2615,13 @@
 
     let humeSocket = null;
     let voiceRecorder = null;
-    /* Queue-based audio playback (recommended by Hume docs) */
-    let voiceAudioQueue = [];
-    let voiceCurrentAudio = null;
-    let voiceIsPlaying = false;
+    let voiceMicStream = null;
+    /* AudioContext for gapless playback — schedule buffers ahead of time */
+    let voiceAudioCtx = null;
+    let voiceNextPlayTime = 0;
+    let voiceActiveSources = [];
+    /* Mute mic while assistant is speaking to prevent echo-triggered interruption */
+    let voiceIsMuted = false;
 
     chatCallBtn.addEventListener('click', startVoiceCall);
     voiceEndBtn.addEventListener('click', endVoiceCall);
@@ -2649,14 +2652,17 @@
           console.warn('[Voice] No paper context, using default prompt');
         }
 
-        /* 3. Connect WebSocket to Hume EVI with Gemini config */
+        /* 3. Init AudioContext (must happen inside user gesture for autoplay policy) */
+        voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        voiceNextPlayTime = 0;
+
+        /* 4. Connect WebSocket to Hume EVI with Gemini config */
         let wsUrl = `wss://api.hume.ai/v0/evi/chat?access_token=${encodeURIComponent(accessToken)}`;
         if (configId) wsUrl += `&config_id=${encodeURIComponent(configId)}`;
         humeSocket = new WebSocket(wsUrl);
 
         humeSocket.onopen = () => {
           console.log('[Voice] WebSocket connected');
-          /* Send session settings with paper context as system prompt */
           humeSocket.send(JSON.stringify({
             type: 'session_settings',
             system_prompt: systemPrompt,
@@ -2665,13 +2671,13 @@
           voiceStatusText.textContent = 'Speaking with CHECKR';
           voiceStatusSub.textContent = 'Listening...';
 
-          /* Start capturing microphone AFTER WebSocket opens (required for WebM header) */
+          /* Start mic AFTER WebSocket opens (required for WebM header) */
           startVoiceRecording();
         };
 
         humeSocket.onmessage = (event) => {
           const msg = JSON.parse(event.data);
-          console.log('[Voice] EVI msg:', msg.type, msg.type === 'error' ? msg : '');
+          if (msg.type === 'error') console.error('[Voice] EVI error:', msg);
           handleEviMessage(msg);
         };
 
@@ -2699,8 +2705,7 @@
 
     async function startVoiceRecording() {
       try {
-        /* Enable echo cancellation, noise suppression, and auto gain */
-        const stream = await navigator.mediaDevices.getUserMedia({
+        voiceMicStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
@@ -2715,14 +2720,18 @@
             : 'audio/mp4';
 
         console.log('[Voice] Recording with:', mimeType);
-        voiceRecorder = new MediaRecorder(stream, { mimeType });
+        voiceRecorder = new MediaRecorder(voiceMicStream, { mimeType });
         voiceRecorder.ondataavailable = async (e) => {
           if (e.data.size > 0 && humeSocket && humeSocket.readyState === WebSocket.OPEN) {
+            /* Skip sending while muted (assistant is speaking) to prevent echo.
+               Don't send fake silence — just don't send anything. The WebSocket
+               stays alive regardless; sending invalid bytes corrupts the stream. */
+            if (voiceIsMuted) return;
             const base64 = await blobToBase64(e.data);
             humeSocket.send(JSON.stringify({ type: 'audio_input', data: base64 }));
           }
         };
-        voiceRecorder.start(100); /* send chunks every 100ms */
+        voiceRecorder.start(100);
       } catch (err) {
         console.error('[Voice] Mic access denied:', err);
         voiceStatusSub.textContent = 'Microphone access denied';
@@ -2732,10 +2741,7 @@
     function blobToBase64(blob) {
       return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1];
-          resolve(base64);
-        };
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
         reader.readAsDataURL(blob);
       });
     }
@@ -2743,15 +2749,19 @@
     function stopVoiceRecording() {
       if (voiceRecorder) {
         try { voiceRecorder.stop(); } catch(e) {}
-        voiceRecorder.stream.getTracks().forEach(t => t.stop());
         voiceRecorder = null;
+      }
+      if (voiceMicStream) {
+        voiceMicStream.getTracks().forEach(t => t.stop());
+        voiceMicStream = null;
       }
     }
 
     function handleEviMessage(msg) {
       switch (msg.type) {
         case 'audio_output':
-          enqueueVoiceAudio(msg.data);
+          voiceIsMuted = true;
+          scheduleVoiceAudio(msg.data);
           voiceStatusSub.textContent = 'Speaking...';
           break;
         case 'user_message':
@@ -2766,10 +2776,12 @@
           }
           break;
         case 'assistant_end':
+          voiceIsMuted = false;
           voiceStatusSub.textContent = 'Listening...';
           break;
         case 'user_interruption':
           stopVoicePlayback();
+          voiceIsMuted = false;
           voiceStatusSub.textContent = 'Listening...';
           break;
         case 'error':
@@ -2788,45 +2800,59 @@
       voiceTranscript.scrollTop = voiceTranscript.scrollHeight;
     }
 
-    /* ── Queue-based audio playback via HTML Audio (per Hume docs) ──── */
-    function enqueueVoiceAudio(base64Data) {
-      /* Convert base64 WAV to Blob and queue for playback */
-      const binaryStr = atob(base64Data);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-      const blob = new Blob([bytes], { type: 'audio/wav' });
-      voiceAudioQueue.push(blob);
-      if (!voiceIsPlaying) playNextVoiceAudio();
-    }
-
-    function playNextVoiceAudio() {
-      if (voiceAudioQueue.length === 0) {
-        voiceIsPlaying = false;
-        return;
+    /* ── Gapless audio playback via AudioContext ────
+       Each WAV chunk is decoded and scheduled to start exactly when
+       the previous one ends, eliminating gaps between segments. */
+    async function scheduleVoiceAudio(base64Data) {
+      if (!voiceAudioCtx) return;
+      if (voiceAudioCtx.state === 'suspended') {
+        try { await voiceAudioCtx.resume(); } catch(e) {}
       }
-      voiceIsPlaying = true;
-      const blob = voiceAudioQueue.shift();
-      const url = URL.createObjectURL(blob);
-      voiceCurrentAudio = new Audio(url);
-      voiceCurrentAudio.play().catch(err => {
-        console.error('[Voice] Playback error:', err);
-        voiceIsPlaying = false;
-        /* Try next chunk if this one fails */
-        if (voiceAudioQueue.length > 0) playNextVoiceAudio();
-      });
-      voiceCurrentAudio.onended = () => {
-        URL.revokeObjectURL(url);
-        playNextVoiceAudio();
-      };
+
+      try {
+        const binaryStr = atob(base64Data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+        /* decodeAudioData needs its own copy of the ArrayBuffer */
+        const audioBuffer = await voiceAudioCtx.decodeAudioData(bytes.buffer.slice(0));
+        const source = voiceAudioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(voiceAudioCtx.destination);
+
+        /* Schedule gaplessly: each chunk starts right when the previous ends */
+        const now = voiceAudioCtx.currentTime;
+        const startAt = Math.max(voiceNextPlayTime, now);
+        source.start(startAt);
+        voiceNextPlayTime = startAt + audioBuffer.duration;
+
+        voiceActiveSources.push(source);
+        source.onended = () => {
+          const idx = voiceActiveSources.indexOf(source);
+          if (idx !== -1) voiceActiveSources.splice(idx, 1);
+        };
+      } catch (e) {
+        console.warn('[Voice] Audio decode failed, trying Audio fallback:', e.message);
+        /* Fallback: use HTML Audio for chunks that fail decoding */
+        try {
+          const binaryStr = atob(base64Data);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+          const blob = new Blob([bytes], { type: 'audio/wav' });
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          audio.play().catch(() => {});
+          audio.onended = () => URL.revokeObjectURL(url);
+        } catch (e2) {
+          console.warn('[Voice] Audio fallback also failed:', e2.message);
+        }
+      }
     }
 
     function stopVoicePlayback() {
-      if (voiceCurrentAudio) {
-        voiceCurrentAudio.pause();
-        voiceCurrentAudio = null;
-      }
-      voiceIsPlaying = false;
-      voiceAudioQueue.length = 0;
+      voiceActiveSources.forEach(s => { try { s.stop(); } catch(e) {} });
+      voiceActiveSources = [];
+      if (voiceAudioCtx) voiceNextPlayTime = voiceAudioCtx.currentTime;
     }
 
     function endVoiceCall() {
@@ -2836,6 +2862,11 @@
         humeSocket.close();
         humeSocket = null;
       }
+      if (voiceAudioCtx) {
+        voiceAudioCtx.close().catch(() => {});
+        voiceAudioCtx = null;
+      }
+      voiceIsMuted = false;
       voiceOverlay.classList.remove('active');
     }
 

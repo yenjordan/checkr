@@ -104,17 +104,25 @@ async def LeanVerifyAgent(state: AgentFState) -> AgentFState:
     chunk_results = []
 
     for i, c in enumerate(chunks[:max_chunks]):
-        text = f"[{c.get('equation_type', 'equation')}] {c.get('latex', '')}  -- {c.get('context', '')}"
-        response = await (LEAN_PROMPT | llm).ainvoke({"math_chunks": text})
-        code = _one_axiom_per_line(_strip_fence(response.content or ""))
-        res = run_lean(code)
-        chunk_results.append({
-            "ran_successfully": res["ran_successfully"],
-            "lean_code": code[:8000],
-            "stderr": res.get("stderr", ""),
-        })
-        ok = "OK" if res["ran_successfully"] else "FAIL"
-        print(f"  Lean chunk {i + 1}: {ok}", flush=True)
+        try:
+            text = f"[{c.get('equation_type', 'equation')}] {c.get('latex', '')}  -- {c.get('context', '')}"
+            response = await (LEAN_PROMPT | llm).ainvoke({"math_chunks": text})
+            code = _one_axiom_per_line(_strip_fence(response.content or ""))
+            res = run_lean(code)
+            chunk_results.append({
+                "ran_successfully": res["ran_successfully"],
+                "lean_code": code[:8000],
+                "stderr": res.get("stderr", ""),
+            })
+            ok = "OK" if res["ran_successfully"] else "FAIL"
+            print(f"  Lean chunk {i + 1}: {ok}", flush=True)
+        except Exception as e:
+            print(f"  Lean chunk {i + 1}: ERROR - {e}", flush=True)
+            chunk_results.append({
+                "ran_successfully": False,
+                "lean_code": "",
+                "stderr": str(e),
+            })
 
     return {
         "subagent_responses": {
