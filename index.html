@@ -841,6 +841,12 @@
       padding: 4px 0;
     }
 
+    details[open] > summary span:first-child {
+      transform: rotate(90deg);
+    }
+
+    details > summary::-webkit-details-marker { display: none; }
+
     .math-chunk-latex-wrap {
       margin: 12px 0;
       padding: 16px 20px;
@@ -2465,17 +2471,21 @@
         </div>
       `;
 
-      /* Planner steps */
+      /* Planner steps — collapsed by default */
       if (data.planner_steps && data.planner_steps.length) {
         html += `<div class="results-section">
-          <div class="results-section-title">Verification Plan</div>`;
+          <details>
+            <summary class="results-section-title" style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;transition:transform 0.2s">▶</span> Verification Plan
+            </summary>
+            <div style="margin-top:8px">`;
         data.planner_steps.forEach(step => {
           html += `<div class="result-card"><div class="result-card-analysis">${step}</div></div>`;
         });
-        html += `</div>`;
+        html += `</div></details></div>`;
       }
 
-      /* Code execution results */
+      /* Code execution results — only if there are actual results */
       if (data.code_results && data.code_results.length) {
         html += `<div class="results-section">
           <div class="results-section-title">Code Execution</div>`;
@@ -2512,47 +2522,65 @@
         </div>`;
       }
 
-      /* math chunks */
+      /* Unified math verification — one card per chunk */
       if (data.math_chunks && data.math_chunks.length) {
+        /* summary banner */
+        const sv = data.sympy_verify || {};
+        const vc = sv.verified_count || 0;
+        const fc = sv.failed_count || 0;
+        const ec = sv.error_count || 0;
+        const total = vc + fc + ec;
+
         html += `<div class="results-section">
-          <div class="results-section-title">Math content</div>`;
+          <div class="results-section-title">Math Verification</div>`;
+
+        /* overall summary card if we have sympy or math-level data */
+        if (total > 0 || (data.math && data.math.explanation)) {
+          html += `<div class="result-card" style="margin-bottom:16px">`;
+          if (total > 0) {
+            html += `<div class="math-status">
+              <span class="math-badge ${fc === 0 ? 'valid' : 'invalid'}">${vc}/${total} verified</span>
+              ${fc > 0 ? `<span class="math-badge invalid">${fc} failed</span>` : ''}
+              ${ec > 0 ? `<span class="math-badge" style="background:#f5f5f5;color:#888">${ec} inconclusive</span>` : ''}
+            </div>`;
+          }
+          if (data.math && data.math.explanation) {
+            html += `<div class="result-card-analysis" style="margin-top:8px">${data.math.explanation}</div>`;
+            if (data.math.issues?.length) {
+              html += `<div class="math-issues">${data.math.issues.map(iss => `<div class="math-issue">${escapeHtml(iss)}</div>`).join('')}</div>`;
+            }
+          }
+          html += `</div>`;
+        }
+
+        /* per-chunk cards */
         data.math_chunks.forEach((chunk, i) => {
           mathChunkLatex.push(chunk.latex || '');
           const typeLabel = (chunk.equation_type || 'equation').replace(/_/g, ' ');
+          const vs = chunk.verification_status;
+          const statusClass = vs === 'verified' ? 'valid' : vs === 'failed' ? 'invalid' : '';
+          const statusLabel = vs === 'verified' ? 'Verified' : vs === 'failed' ? 'Failed' : vs === 'error' ? 'Error' : vs ? 'Inconclusive' : '';
+          const proof = chunk.proof || {};
+          const steps = proof.steps || [];
+
           html += `
-            <div class="result-card">
+            <div class="result-card" style="margin-bottom:10px">
               <div class="result-card-header">
                 <span class="result-card-lang">${escapeHtml(typeLabel)} &middot; Chunk ${i + 1}</span>
+                ${statusLabel ? `<span class="result-badge ${statusClass === 'valid' ? 'pass' : statusClass === 'invalid' ? 'fail' : ''}">${statusLabel}</span>` : ''}
               </div>
               <div class="math-chunk-latex-wrap"><span id="math-latex-${i}" class="math-chunk-latex"></span></div>
-              <div class="result-card-analysis">${escapeHtml(chunk.context || '')}</div>
+              ${chunk.context ? `<div class="result-card-analysis">${escapeHtml(chunk.context)}</div>` : ''}
+              ${proof.conclusion ? `<div class="proof-step-detail" style="font-size:13px;font-weight:500;margin:8px 0 4px;color:${vs==='verified'?'#2a7':vs==='failed'?'#c44':'#555'}">${escapeHtml(proof.conclusion)}</div>` : ''}
+              ${steps.length ? `<details style="margin-top:6px"><summary style="font-size:12px;cursor:pointer;color:#555">Proof steps (${steps.length})</summary>
+                <div class="proof-steps-list" style="margin-top:6px;padding:10px 14px;background:#f8f8f8;border-radius:6px;font-size:13px;line-height:1.7">
+                  ${steps.map(s => `<div style="margin:4px 0"><span style="color:#888;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.3px">${escapeHtml(s.step)}</span><br><span class="proof-step-detail">${escapeHtml((s.detail||'').slice(0,500))}</span></div>`).join('')}
+                </div>
+              </details>` : ''}
+              ${chunk.verification_error ? `<div style="font-size:12px;color:#c44;margin-top:4px">${escapeHtml(chunk.verification_error)}</div>` : ''}
             </div>`;
         });
         html += `</div>`;
-      }
-
-      /* Math verification */
-      if (data.math && Object.keys(data.math).length && data.math.explanation) {
-        const m = data.math;
-        html += `<div class="results-section">
-          <div class="results-section-title">Math Verification</div>
-          <div class="result-card">
-            <div class="math-status">
-              <span class="math-badge ${m.is_mathematically_valid ? 'valid' : 'invalid'}">
-                ${m.is_mathematically_valid ? 'Valid' : 'Invalid'}
-              </span>
-              <span class="math-badge ${m.is_consistent_with_claims ? 'valid' : 'invalid'}">
-                ${m.is_consistent_with_claims ? 'Consistent' : 'Inconsistent'}
-              </span>
-            </div>
-            <div class="result-card-analysis">${m.explanation}</div>
-            ${m.issues?.length ? `<div class="math-issues">${m.issues.map(i => `<div class="math-issue">${escapeHtml(i)}</div>`).join('')}</div>` : ''}
-            ${m.verified_steps?.length ? `
-              <ul class="math-steps" style="margin-top:12px">
-                ${m.verified_steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
-              </ul>` : ''}
-          </div>
-        </div>`;
       }
 
       /* hide loading, show results */
@@ -2561,15 +2589,39 @@
 
       /* render latex */
       if (mathChunkLatex.length && window.katex) {
-        mathChunkLatex.forEach((latex, i) => {
-          const el = document.getElementById('math-latex-' + i);
-          if (el) {
+        mathChunkLatex.forEach((item, i) => {
+          const isObj = typeof item === 'object' && item !== null;
+          const elId = isObj ? item.id : ('math-latex-' + i);
+          const tex = isObj ? item.tex : item;
+          const el = document.getElementById(elId);
+          if (el && tex) {
             try {
-              window.katex.render(latex, el, { throwOnError: false, displayMode: true });
+              window.katex.render(tex, el, { throwOnError: false, displayMode: true });
             } catch (e) {
-              el.textContent = latex;
+              el.textContent = tex;
             }
           }
+        });
+      }
+
+      /* render KaTeX in proof step details */
+      if (window.katex) {
+        analysisResultsContent.querySelectorAll('.proof-step-detail').forEach(el => {
+          let text = el.textContent;
+          /* replace $$...$$ with display math, then $...$ with inline math */
+          text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
+            try { return katex.renderToString(tex.trim(), { throwOnError: false, displayMode: true }); }
+            catch (e) { return '$$' + tex + '$$'; }
+          });
+          text = text.replace(/\$([^\s$][^$]*?[^\s$])\$/g, (_, tex) => {
+            try { return katex.renderToString(tex.trim(), { throwOnError: false, displayMode: false }); }
+            catch (e) { return '$' + tex + '$'; }
+          });
+          text = text.replace(/\$([^\s$])\$/g, (_, tex) => {
+            try { return katex.renderToString(tex.trim(), { throwOnError: false, displayMode: false }); }
+            catch (e) { return '$' + tex + '$'; }
+          });
+          if (text !== el.textContent) el.innerHTML = text;
         });
       }
 

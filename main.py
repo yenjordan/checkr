@@ -18,7 +18,7 @@ load_dotenv()
 from graph import workflow, MAX_RETRIES
 from services.code_extract import extract_pdf, parse_document
 from services.supabase_store import save_analysis
-from services.rag_chat import chat as rag_chat
+from services.rag_chat import chat as rag_chat, fetch_paper_context
 from pydantic import BaseModel
 
 app = FastAPI(title="CHECKR API")
@@ -69,18 +69,38 @@ async def check_paper(file: UploadFile = File(...)):
 
         result = await graph.ainvoke(initial_state)
 
-        # Step 3: Save to Supabase for RAG pipeline
+        # Step 3: per-chunk SymPy verification 
+        raw_math_chunks = result.get("subagent_responses", {}).get("math_extractor", {}).get("chunks", [])
+        sympy_chunk_results = result.get("subagent_responses", {}).get("sympy_verify", {}).get("chunk_results", [])
+        enriched_math_chunks = []
+        for i, chunk in enumerate(raw_math_chunks):
+            enriched = dict(chunk)
+            if i < len(sympy_chunk_results):
+                r = sympy_chunk_results[i]
+                enriched["sympy_translation"] = r.get("sympy_translation", {})
+                enriched["verification_status"] = r.get("status", "unknown")
+                enriched["proof"] = r.get("proof", {})
+                enriched["verification_error"] = r.get("error", None)
+            else:
+                enriched["sympy_translation"] = None
+                enriched["verification_status"] = None
+                enriched["proof"] = None
+                enriched["verification_error"] = None
+            enriched_math_chunks.append(enriched)
+
+        # Step 4: Save to Supabase 
         try:
             save_analysis(
                 filename=file.filename,
                 paper_text=paper_text,
                 page_count=parsed["pages"],
                 result=result,
+                math_chunks=enriched_math_chunks,
             )
         except Exception as store_err:
             print(f"[Supabase] Failed to save analysis: {store_err}")
 
-        # Step 4: Build response
+        # Step 5: Build response
         structured = result.get("structured_response", {})
         subagent = result.get("subagent_responses", {})
 
@@ -89,7 +109,8 @@ async def check_paper(file: UploadFile = File(...)):
             "summary": structured.get("summary", ""),
             "code_results": subagent.get("replanner", {}).get("results", []),
             "math": subagent.get("math", {}),
-            "math_chunks": subagent.get("math_extractor", {}).get("chunks", []),
+            "math_chunks": enriched_math_chunks,
+            "sympy_verify": subagent.get("sympy_verify", {}),
             "coding_review": subagent.get("coding", {}),
             "planner_steps": subagent.get("planner", {}).get("steps", []),
             "pages": parsed["pages"],
@@ -109,6 +130,25 @@ class ChatRequest(BaseModel):
     filename: str
     question: str
     history: list[dict] = []
+
+
+@app.get("/api/analysis")
+async def get_analysis(filename: str):
+    """Return the latest stored analysis for a filename. Use for loading results w/o rerunning check"""
+    row = fetch_paper_context(filename)
+    if not row:
+        return JSONResponse(status_code=404, content={"error": "No analysis found for this filename."})
+    return {
+        "verdict": row.get("verdict", "unknown"),
+        "summary": row.get("summary", ""),
+        "code_results": row.get("code_execution_results", []),
+        "math": row.get("math_analysis", {}),
+        "math_chunks": row.get("math_chunks", []),
+        "coding_review": row.get("coding_review", {}),
+        "planner_steps": row.get("planner_steps", []),
+        "pages": row.get("page_count"),
+        "filename": row.get("filename", filename),
+    }
 
 
 @app.post("/api/chat")
