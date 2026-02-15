@@ -12,9 +12,9 @@ async def CodingAgent(state: AgentFState) -> AgentFState:
         return {
             "subagent_responses": {
                 "coding": {
-                    "is_conceptually_correct": False,
-                    "issues": ["No code was extracted from the paper. Cannot perform conceptual review."],
-                    "explanation": "Code extractor returned no chunks.",
+                    "is_conceptually_correct": True,
+                    "issues": [],
+                    "explanation": "No code found in the paper. Skipping code review.",
                 }
             }
         }

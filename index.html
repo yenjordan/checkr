@@ -24,6 +24,7 @@
       font-family: 'Outfit', -apple-system, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      scroll-behavior: smooth;
     }
 
     body {
@@ -842,13 +843,25 @@
 
     .math-chunk-latex-wrap {
       margin: 12px 0;
-      padding: 12px 16px;
-      background: rgba(0,0,0,0.03);
-      border-radius: 8px;
+      padding: 16px 20px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 10px;
       overflow-x: auto;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
 
-    .math-chunk-latex-wrap .katex { font-size: 1.05em; }
+    .math-chunk-latex-wrap .katex {
+      font-size: 1.15em;
+      color: #1a1a1a;
+    }
+
+    .math-chunk-latex-wrap .katex .mord,
+    .math-chunk-latex-wrap .katex .mbin,
+    .math-chunk-latex-wrap .katex .mrel {
+      color: #1a1a1a;
+    }
 
     /* ── Responsive results panel ─────────── */
     @media (max-width: 768px) {
@@ -871,6 +884,95 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ═══════════════════════════════════════════
+       HOW IT WORKS SECTION
+       ═══════════════════════════════════════════ */
+    .how-section {
+      position: relative;
+      z-index: 1;
+      padding: 120px 52px 140px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .how-headline {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .how-headline.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-headline em {
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    .how-blurb {
+      font-size: 16px;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 520px;
+      margin-bottom: 64px;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.8s 0.15s ease, transform 0.8s 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .how-blurb.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-arch {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.9s 0.3s ease, transform 0.9s 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow:
+        0 2px 8px rgba(0,0,0,0.04),
+        0 16px 48px rgba(0,0,0,0.08);
+    }
+
+    .how-arch.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-arch img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .how-rule {
+      width: 48px;
+      height: 1px;
+      background: var(--faint);
+      margin-bottom: 32px;
+      opacity: 0;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: opacity 0.6s 0.08s ease, transform 0.6s 0.08s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .how-rule.visible {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+
     /* ── Responsive ──────────────────────────── */
     @media (max-width: 768px) {
       nav { padding: 24px 28px; }
@@ -882,6 +984,7 @@
       .paper-stack { width: 240px; height: 320px; }
       .paper-stack .paper-card { width: 240px; height: 320px; }
       .overlay-close { top: 24px; right: 28px; }
+      .how-section { padding: 80px 28px 100px; }
     }
 
     @media (max-width: 480px) {
@@ -891,6 +994,7 @@
       .hero-headline { letter-spacing: -1px; }
       .paper-stack { width: 220px; height: 290px; }
       .paper-stack .paper-card { width: 220px; height: 290px; }
+      .how-section { padding: 60px 20px 80px; }
     }
 
     /* ═══════════════════════════════════════════
@@ -1005,6 +1109,27 @@
         0 8px 24px rgba(0,0,0,0.08);
     }
 
+    /* ── Stanford background image ───────────── */
+    .analysis-pdf-bg {
+      position: fixed;
+      bottom: 0;
+      left: -100px;
+      pointer-events: none;
+      line-height: 0;
+      z-index: 402;
+    }
+
+    .analysis-pdf-bg img {
+      height: auto;
+      max-height: 70vh;
+      display: block;
+    }
+
+    .analysis-pdf-inner {
+      position: relative;
+      z-index: 403;
+    }
+
     /* ── Zoom controls ───────────────────────── */
     .analysis-zoom {
       position: fixed;
@@ -1062,8 +1187,8 @@
       min-width: 42px;
       text-align: center;
       user-select: none;
-      border-left: 1px solid var(--faint);
-      border-right: 1px solid var(--faint);
+      border-left: none;
+      border-right: none;
       padding: 0 2px;
       line-height: 36px;
     }
@@ -1343,6 +1468,7 @@
       transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
       overflow: hidden;
       border-radius: 0;
+      background: var(--paper);
     }
 
     .chat-panel.open {
@@ -1357,6 +1483,12 @@
       height: 100%;
       object-fit: cover;
       z-index: 0;
+      opacity: 0;
+      transition: opacity 0.4s 0.5s ease;
+    }
+
+    .chat-panel.open .chat-bg-video {
+      opacity: 1;
     }
 
     .chat-bg-overlay {
@@ -1378,28 +1510,29 @@
     }
 
     .chat-header-title {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 18px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
       color: var(--ink);
-      letter-spacing: -0.3px;
+      letter-spacing: 0.3px;
+      opacity: 0.8;
     }
 
     .chat-close {
       width: 28px;
       height: 28px;
-      border: 1px solid rgba(0,0,0,0.2);
-      border-radius: 50%;
-      background: rgba(255,255,255,0.6);
+      border: none;
+      border-radius: 0;
+      background: transparent;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: border-color 0.3s ease, background 0.3s ease;
+      transition: opacity 0.3s ease;
     }
 
     .chat-close:hover {
-      border-color: var(--ink);
-      background: rgba(255,255,255,0.8);
+      opacity: 0.6;
     }
 
     .chat-close svg {
@@ -1567,7 +1700,17 @@
       display: inline;
     }
 
-    .chat-msg .katex { font-size: 0.95em; }
+    .chat-msg .katex {
+      font-size: 1.05em;
+      color: inherit;
+      letter-spacing: 0.01em;
+    }
+
+    .chat-msg.user .katex { color: var(--paper); }
+
+    .chat-msg .chat-katex[data-display="display"] .katex-display {
+      margin: 6px 0;
+    }
 
     .chat-msg.assistant.typing {
       color: var(--muted);
@@ -1591,7 +1734,7 @@
       <img src="assets/checkr.png" alt="CHECKR">
     </div>
     <div class="nav-right">
-      <a href="#" class="nav-link">How it works</a>
+      <a href="#howSection" class="nav-link">How it works</a>
       <a href="#" class="nav-link" id="navGetStarted">Get started</a>
     </div>
   </nav>
@@ -1618,6 +1761,18 @@
       <span class="arrow">&rarr;</span>
     </button>
   </main>
+
+  <!-- ── How It Works ────────────────────────── -->
+  <section class="how-section" id="howSection">
+    <div class="how-rule"></div>
+    <h2 class="how-headline">Research is hard,<br>but it <em>doesn't have to be.</em></h2>
+    <p class="how-blurb">
+      We built CHECKR because verifying research shouldn't require a PhD. Whether you're a researcher double-checking claims before publication, a founder building on the latest science, or a VC evaluating deep-tech investments — you deserve tools that cut through the noise and surface what actually matters.
+    </p>
+    <div class="how-arch">
+      <img src="assets/arch.PNG" alt="CHECKR Architecture">
+    </div>
+  </section>
 
   <!-- ── Overlay ──────────────────────────────── -->
   <div class="overlay" id="overlay">
@@ -1688,9 +1843,9 @@
     </div>
 
     <div class="analysis-zoom" id="analysisZoom">
-      <button id="zoomOut">&minus;</button>
+      <button id="zoomOut"><img src="assets/minus.png" alt="−" style="width:14px;height:14px;display:block;opacity:0.4;"></button>
       <span class="analysis-zoom-level" id="zoomLevel">100%</span>
-      <button id="zoomIn">+</button>
+      <button id="zoomIn"><img src="assets/plus.png" alt="+" style="width:14px;height:14px;display:block;opacity:0.4;"></button>
     </div>
 
     <div class="analysis-results">
@@ -1746,6 +1901,10 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <div class="analysis-pdf-bg">
+      <img src="assets/Gemini_Generated_Image_2ltt3n2ltt3n2ltt-removebg-preview.png" alt="" draggable="false">
     </div>
   </div>
 
@@ -2089,10 +2248,7 @@
       setTimeout(() => chatInput.focus(), 400);
     });
 
-    chatClose.addEventListener('click', () => {
-      chatPanel.classList.remove('open');
-      sparkBtn.classList.remove('hidden');
-    });
+    chatClose.addEventListener('click', closeChatPanel);
 
     /* close chat when leaving analysis view */
     function closeChatPanel() {
@@ -2446,6 +2602,20 @@
       div.textContent = str;
       return div.innerHTML;
     }
+
+    /* ── How-section scroll reveal ──────────── */
+    const howObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          howObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.how-rule, .how-headline, .how-blurb, .how-arch').forEach(el => {
+      howObserver.observe(el);
+    });
   </script>
 
 </body>
