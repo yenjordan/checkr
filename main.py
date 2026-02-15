@@ -385,3 +385,8 @@ app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 @app.get("/")
 async def serve_index():
     return FileResponse("index.html")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
