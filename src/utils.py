@@ -18,6 +18,15 @@ def _sanitize_json_string(text: str) -> str:
     return re.sub(r'"(?:[^"\\]|\\.)*"', fix_string_value, text, flags=re.DOTALL)
 
 
+def _repair_leading_brace(raw: str) -> str:
+    """Fix JSON where LLM output has extra '{' at start (e.g. '{ { \"key\": ...')."""
+    # Match leading { followed by optional whitespace and another {
+    m = re.match(r"^\s*\{\s*\{", raw)
+    if m:
+        return raw[m.end() - 1 :]  # keep single { and rest
+    return raw
+
+
 def parse_json_response(text: str, model: Type[T], llm: Optional[Any] = None) -> T:
     match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
     if match:
@@ -35,7 +44,10 @@ def parse_json_response(text: str, model: Type[T], llm: Optional[Any] = None) ->
     raw = re.sub(r'^\s*#.*$', '', raw, flags=re.MULTILINE)
 
     last_error = None
-    for s in (raw, _sanitize_json_string(raw)):
+    candidates = [raw, _repair_leading_brace(raw), _sanitize_json_string(raw)]
+    for s in candidates:
+        if not s or not s.strip():
+            continue
         try:
             return model.model_validate_json(s)
         except Exception as e:

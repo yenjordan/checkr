@@ -4,7 +4,7 @@ from config import llm
 from utils import parse_json_response
 
 async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
-    paper_text = state["query"]
+    paper_text = state.get("query") or ""
     print("[CodeExtractor] input length:", len(paper_text), "chars")
 
     extractor_prompt = ChatPromptTemplate.from_messages([
@@ -26,19 +26,20 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
         ("human", "Extract all code chunks from the following paper text:\n\n{paper_text}")
     ])
 
-    chain = extractor_prompt | llm
-    response = await chain.ainvoke({"paper_text": paper_text})
-    raw = response.content or ""
-    
+    chunks = []
     try:
-        result = parse_json_response(raw, CodeExtractorOutput)
-        chunks = [
-            {"code": chunk.code, "language": chunk.language, "context": chunk.context}
-            for chunk in result.chunks
-        ]
+        chain = extractor_prompt | llm
+        response = await chain.ainvoke({"paper_text": paper_text})
+        raw = (response.content or "").strip()
+        if raw:
+            result = parse_json_response(raw, CodeExtractorOutput)
+            chunks = [
+                {"code": str(c.code), "language": str(c.language), "context": str(c.context)}
+                for c in (result.chunks or [])
+            ]
     except Exception as e:
+        print("[CodeExtractor] failed:", e)
         chunks = []
-        print("[CodeExtractor] parse failed:", e)
 
     return {
         "subagent_responses": {
