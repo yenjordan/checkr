@@ -17,7 +17,14 @@ def _get_client():
     return _client
 
 
-def save_analysis(filename: str, paper_text: str, page_count: int, result: dict) -> dict:
+def save_analysis(
+    filename: str,
+    paper_text: str,
+    page_count: int,
+    result: dict,
+    *,
+    math_chunks: list | None = None,
+) -> dict:
     structured = result.get("structured_response") or {}
     subagent = result.get("subagent_responses") or {}
 
@@ -30,7 +37,11 @@ def save_analysis(filename: str, paper_text: str, page_count: int, result: dict)
         "planner_steps": subagent.get("planner", {}).get("steps", []),
         "code_chunks": subagent.get("code_extractor", {}).get("chunks", []),
         "coding_review": subagent.get("coding", {}),
-        "math_chunks": subagent.get("math_extractor", {}).get("chunks", []),
+        "math_chunks": (
+            math_chunks
+            if math_chunks is not None
+            else subagent.get("math_extractor", {}).get("chunks", [])
+        ),
         "math_analysis": subagent.get("math", {}),
         "code_execution_results": subagent.get("replanner", {}).get("results", []),
     }

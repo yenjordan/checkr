@@ -60,4 +60,5 @@ class MathAnalysisOutput(BaseModel):
     is_consistent_with_claims: bool
     issues: List[str]
     explanation: str
-    verified_steps: List[str]  # Step-by-step verification reasoning
+    verified_steps: List[str]
+    critical_gaps: List[str] = []
