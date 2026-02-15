@@ -3,6 +3,7 @@ from agents.planner import PlannerAgent
 from agents.code_extractor import CodeExtractorAgent
 from agents.math_extractor import MathExtractorAgent
 from agents.sympy_verify import SympyVerifyAgent
+from agents.lean_verify import LeanVerifyAgent
 from agents.coding_agent import CodingAgent
 from agents.math_agent import MathAgent
 from agents.replanner import ReplannerAgent
@@ -69,6 +70,7 @@ workflow.add_node("planner", PlannerAgent)
 workflow.add_node("code_extractor", CodeExtractorAgent)
 workflow.add_node("math_extractor", MathExtractorAgent)
 workflow.add_node("sympy_verify", SympyVerifyAgent)
+workflow.add_node("lean_verify", LeanVerifyAgent)
 workflow.add_node("coding", CodingAgent)
 workflow.add_node("math", MathAgent)
 workflow.add_node("replanner", ReplannerAgent)
@@ -76,13 +78,15 @@ workflow.add_node("decrement_retries", decrement_retries)
 workflow.add_node("mark_hard_to_verify", mark_hard_to_verify)
 workflow.add_node("mark_success", mark_success)
 
-# Flow: planner → [extractors in parallel] → [analyzers in parallel] → replanner
+# Flow: planner → [extractors in parallel] → [verify in parallel] → math → replanner
 workflow.add_edge(START, "planner")
 workflow.add_edge("planner", "code_extractor")
 workflow.add_edge("planner", "math_extractor")
 workflow.add_edge("code_extractor", "coding")
 workflow.add_edge("math_extractor", "sympy_verify")
+workflow.add_edge("math_extractor", "lean_verify")
 workflow.add_edge("sympy_verify", "math")
+workflow.add_edge("lean_verify", "math")
 workflow.add_edge("coding", "replanner")
 workflow.add_edge("math", "replanner")
 

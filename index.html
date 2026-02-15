@@ -852,9 +852,14 @@
       background: rgba(0,0,0,0.03);
       border-radius: 8px;
       overflow-x: auto;
+      overflow-y: visible;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      min-height: 1.5em;
     }
 
     .math-chunk-latex-wrap .katex { font-size: 1.05em; }
+    .math-chunk-latex-wrap .math-chunk-latex { display: block; overflow-x: auto; white-space: normal; word-break: break-word; }
 
     /* ── Clickable chunk cards ────────────── */
     .result-card.clickable {
@@ -3297,18 +3302,21 @@
         </div>`;
       }
 
-      /* Unified math verification — one card per chunk */
-      if (data.math_chunks && data.math_chunks.length) {
-        /* summary banner */
-        const sv = data.sympy_verify || {};
-        const vc = sv.verified_count || 0;
-        const fc = sv.failed_count || 0;
-        const ec = sv.error_count || 0;
-        const total = vc + fc + ec;
+      const mathChunks = data.math_chunks || [];
+      const sv = data.sympy_verify || {};
+      const vc = sv.verified_count || 0;
+      const fc = sv.failed_count || 0;
+      const ec = sv.error_count || 0;
+      const total = vc + fc + ec;
 
-        html += `<div class="results-section">
-          <div class="results-section-title">Math Verification</div>`;
+      html += `<div class="results-section">
+        <div class="results-section-title">Math Verification</div>`;
 
+      if (mathChunks.length === 0) {
+        html += `<div class="result-card" style="margin-bottom:16px">
+          <div class="result-card-analysis" style="color:#666">No math chunks found in this paper.</div>
+        </div>`;
+      } else {
         /* overall summary card if we have sympy or math-level data */
         if (total > 0 || (data.math && data.math.explanation)) {
           html += `<div class="result-card" style="margin-bottom:16px">`;
@@ -3329,7 +3337,7 @@
         }
 
         /* per-chunk cards */
-        data.math_chunks.forEach((chunk, i) => {
+        mathChunks.forEach((chunk, i) => {
           mathChunkLatex.push(chunk.latex || '');
           const typeLabel = (chunk.equation_type || 'equation').replace(/_/g, ' ');
           const vs = chunk.verification_status;
@@ -3338,43 +3346,116 @@
           const proof = chunk.proof || {};
           const steps = proof.steps || [];
 
+          // Lean verification status
+          const leanSuccess = chunk.lean_success;
+          const leanCode = chunk.lean_code || '';
+          const leanError = chunk.lean_error || '';
+          const leanStatusBadge = leanSuccess === true ? `<span class="result-badge pass">Lean ✓</span>` :
+                                   leanSuccess === false ? `<span class="result-badge fail">Lean ✗</span>` : '';
+
           html += `
             <div class="result-card clickable" data-chunk-type="math" data-chunk-idx="${i}" style="margin-bottom:10px">
               <div class="result-card-header">
                 <span class="result-card-lang">${escapeHtml(typeLabel)} &middot; Chunk ${i + 1}</span>
                 ${statusLabel ? `<span class="result-badge ${statusClass === 'valid' ? 'pass' : statusClass === 'invalid' ? 'fail' : ''}">${statusLabel}</span>` : ''}
+                ${leanStatusBadge}
                 ${locateIconSvg}
               </div>
               <div class="math-chunk-latex-wrap"><span id="math-latex-${i}" class="math-chunk-latex"></span></div>
               ${chunk.context ? `<div class="result-card-analysis">${escapeHtml(chunk.context)}</div>` : ''}
               ${proof.conclusion ? `<div class="proof-step-detail" style="font-size:13px;font-weight:500;margin:8px 0 4px;color:${vs==='verified'?'#2a7':vs==='failed'?'#c44':'#555'}">${escapeHtml(proof.conclusion)}</div>` : ''}
-              ${steps.length ? `<details style="margin-top:6px"><summary style="font-size:12px;cursor:pointer;color:#555">Proof steps (${steps.length})</summary>
+              ${steps.length ? `<details style="margin-top:6px"><summary style="font-size:12px;cursor:pointer;color:#555">SymPy proof steps (${steps.length})</summary>
                 <div class="proof-steps-list" style="margin-top:6px;padding:10px 14px;background:#f8f8f8;border-radius:6px;font-size:13px;line-height:1.7">
                   ${steps.map(s => `<div style="margin:4px 0"><span style="color:#888;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.3px">${escapeHtml(s.step)}</span><br><span class="proof-step-detail">${escapeHtml((s.detail||'').slice(0,500))}</span></div>`).join('')}
                 </div>
               </details>` : ''}
+              ${leanCode ? `<details style="margin-top:6px"><summary style="font-size:12px;cursor:pointer;color:#555">Lean 4 formalization</summary>
+                <div style="margin-top:8px;padding:12px;background:#f8f8f8;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.5;overflow-x:auto;white-space:pre-wrap;word-break:break-word">${escapeHtml(leanCode)}</div>
+                ${leanError && !leanSuccess ? `<div style="font-size:11px;color:#c44;margin-top:6px;padding:8px;background:#fff3f3;border-radius:4px">${escapeHtml(leanError)}</div>` : ''}
+              </details>` : ''}
               ${chunk.verification_error ? `<div style="font-size:12px;color:#c44;margin-top:4px">${escapeHtml(chunk.verification_error)}</div>` : ''}
             </div>`;
         });
-        html += `</div>`;
       }
+      html += `</div>`;
 
       /* hide loading, show results */
       analysisLoading.style.display = 'none';
       analysisResultsContent.innerHTML = html;
 
       /* render latex */
+      function sanitizeLatex(tex) {
+        if (!tex) return '';
+        tex = tex.trim();
+
+        // Remove any markdown code fences or extra backticks
+        tex = tex.replace(/^```latex?\s*/i, '').replace(/```$/, '').replace(/^`+|`+$/g, '');
+
+        // Fix common OCR issues
+        tex = tex.replace(/\s+/g, ' '); // normalize whitespace
+        tex = tex.replace(/\\ +/g, '\\'); // fix spaces after backslashes
+
+        // Fix nested subscripts: T_\text{llm}_i -> T_{\text{llm}_i}
+        tex = tex.replace(/([a-zA-Z0-9])_\\text\{([^}]+)\}_([a-zA-Z0-9]+)/g, '$1_{\\text{$2}_{$3}}');
+
+        // Fix standalone double subscripts without braces: X_abc_def -> X_{abc_{def}}
+        tex = tex.replace(/([a-zA-Z0-9])_([a-zA-Z]+)_([a-zA-Z0-9]+)(?![{])/g, '$1_{$2_{$3}}');
+
+        // Fix subscripts with multiple chars that don't have braces: T_llm -> T_{llm}
+        tex = tex.replace(/([a-zA-Z0-9])_([a-zA-Z]{2,})(?![{_])/g, '$1_{$2}');
+
+        // Fix superscripts with multiple chars: x^10 -> x^{10}
+        tex = tex.replace(/([a-zA-Z0-9])\^([0-9]{2,})/g, '$1^{$2}');
+
+        // Fix unbalanced braces (attempt to balance)
+        const openCount = (tex.match(/\{/g) || []).length;
+        const closeCount = (tex.match(/\}/g) || []).length;
+        if (openCount > closeCount) {
+          tex += '}'.repeat(openCount - closeCount);
+        }
+
+        return tex;
+      }
+
       if (mathChunkLatex.length && window.katex) {
         mathChunkLatex.forEach((item, i) => {
           const isObj = typeof item === 'object' && item !== null;
           const elId = isObj ? item.id : ('math-latex-' + i);
-          const tex = isObj ? item.tex : item;
+          let tex = isObj ? item.tex : item;
           const el = document.getElementById(elId);
           if (el && tex) {
+            tex = sanitizeLatex(tex);
             try {
               window.katex.render(tex, el, { throwOnError: false, displayMode: true });
+              // Check if KaTeX actually rendered something visible
+              if (!el.querySelector('.katex') || el.textContent.trim() === '') {
+                throw new Error('KaTeX render empty');
+              }
             } catch (e) {
-              el.textContent = tex;
+              // Fallback: show cleaned-up LaTeX in a readable format
+              console.warn('KaTeX render failed for:', tex, e);
+              el.style.fontFamily = 'monospace';
+              el.style.fontSize = '14px';
+              el.style.color = '#666';
+              el.style.whiteSpace = 'pre-wrap';
+              el.style.wordBreak = 'break-word';
+              el.style.padding = '8px';
+              el.style.background = '#f9f9f9';
+              el.style.borderRadius = '4px';
+              // Try to make it more readable by simplifying LaTeX commands
+              let readable = tex
+                .replace(/\\text\{([^}]+)\}/g, '$1')
+                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+                .replace(/\\sum_\{([^}]+)\}\^\{([^}]+)\}/g, 'Σ[$1 to $2]')
+                .replace(/\\sum/g, 'Σ')
+                .replace(/\\cdot/g, '·')
+                .replace(/\\times/g, '×')
+                .replace(/\\alpha/g, 'α')
+                .replace(/\\beta/g, 'β')
+                .replace(/\\theta/g, 'θ')
+                .replace(/\\sigma/g, 'σ')
+                .replace(/\\mu/g, 'μ');
+              el.textContent = readable;
             }
           }
         });

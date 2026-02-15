@@ -1,8 +1,7 @@
 import sys
 import os
-import json
-import re
 import tempfile
+import traceback
 from pathlib import Path
 
 # Add src/ to import path
@@ -35,6 +34,17 @@ app.add_middleware(
 
 # Compile the LangGraph workflow
 graph = workflow.compile()
+
+
+def _make_json_serializable(obj):
+    """Recursively ensure object is JSON-serializable (str keys, no custom types)."""
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    if isinstance(obj, dict):
+        return {str(k): _make_json_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_make_json_serializable(x) for x in obj]
+    return str(obj)
 
 
 @app.post("/api/check")
@@ -75,9 +85,12 @@ async def check_paper(file: UploadFile = File(...)):
         # Step 3: per-chunk SymPy verification 
         raw_math_chunks = result.get("subagent_responses", {}).get("math_extractor", {}).get("chunks", [])
         sympy_chunk_results = result.get("subagent_responses", {}).get("sympy_verify", {}).get("chunk_results", [])
+        lean_chunk_results = result.get("subagent_responses", {}).get("lean_verify", {}).get("chunk_results", [])
         enriched_math_chunks = []
         for i, chunk in enumerate(raw_math_chunks):
-            enriched = dict(chunk)
+            enriched = dict(chunk) if isinstance(chunk, dict) else {}
+            if not isinstance(enriched, dict):
+                enriched = {}
             if i < len(sympy_chunk_results):
                 r = sympy_chunk_results[i]
                 enriched["sympy_translation"] = r.get("sympy_translation", {})
@@ -89,6 +102,16 @@ async def check_paper(file: UploadFile = File(...)):
                 enriched["verification_status"] = None
                 enriched["proof"] = None
                 enriched["verification_error"] = None
+            # Add Lean verification
+            if i < len(lean_chunk_results):
+                l = lean_chunk_results[i]
+                enriched["lean_code"] = l.get("lean_code", "")
+                enriched["lean_success"] = l.get("ran_successfully", False)
+                enriched["lean_error"] = l.get("stderr", "")
+            else:
+                enriched["lean_code"] = None
+                enriched["lean_success"] = None
+                enriched["lean_error"] = None
             enriched_math_chunks.append(enriched)
 
         # Step 4: Save to Supabase 
@@ -120,13 +143,14 @@ async def check_paper(file: UploadFile = File(...)):
             except Exception as loc_err:
                 print(f"[ChunkLocator] Failed: {loc_err}")
 
-        return {
+        payload = {
             "verdict": structured.get("verdict", "unknown"),
             "summary": structured.get("summary", ""),
             "code_results": code_results,
             "math": subagent.get("math", {}),
             "math_chunks": enriched_math_chunks,
             "sympy_verify": subagent.get("sympy_verify", {}),
+            "lean_verify": subagent.get("lean_verify", {}),
             "coding_review": subagent.get("coding", {}),
             "planner_steps": subagent.get("planner", {}).get("steps", []),
             "pages": parsed["pages"],
@@ -134,8 +158,10 @@ async def check_paper(file: UploadFile = File(...)):
             "page_layouts": parsed.get("page_layouts", []),
             "filename": file.filename,
         }
+        return _make_json_serializable(payload)
 
     except Exception as e:
+        traceback.print_exc()
         return JSONResponse(
             status_code=500,
             content={"error": str(e)},
