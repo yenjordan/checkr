@@ -123,7 +123,7 @@ def _prove_definition(lhs_str: str, rhs_str: str, local_syms: dict) -> dict:
     if abstract:
         steps.append({"step": "Abstract", "detail": f"{', '.join(sorted(abstract))} (axioms)"})
     steps.append({"step": "Conclusion", "detail": "Definition well-formed."})
-    return {"proved": True, "steps": steps, "conclusion": f"Parameters: {free}"}
+    return {"proved": True, "steps": steps, "conclusion": "Definition well-formed."}
 
 
 def _prove_equation(lhs_str: str, rhs_str: str, free_syms: list[str], local_syms: dict) -> dict:

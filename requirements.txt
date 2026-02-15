@@ -12,3 +12,4 @@ uvicorn>=0.32.0
 python-multipart>=0.0.12
 json-repair>=0.57
 sympy>=1.13
+ocrmypdf>=17.0.0

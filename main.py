@@ -20,7 +20,6 @@ load_dotenv()
 from graph import workflow, MAX_RETRIES
 from services.code_extract import extract_pdf, parse_document
 from services.supabase_store import save_analysis
-<<<<<<< HEAD
 from services.rag_chat import chat as rag_chat, fetch_paper_context
 from agents.chunk_locator import locate_chunks
 from pydantic import BaseModel
@@ -126,7 +125,6 @@ async def check_paper(file: UploadFile = File(...)):
             "summary": structured.get("summary", ""),
             "code_results": code_results,
             "math": subagent.get("math", {}),
-<<<<<<< HEAD
             "math_chunks": enriched_math_chunks,
             "sympy_verify": subagent.get("sympy_verify", {}),
             "coding_review": subagent.get("coding", {}),
