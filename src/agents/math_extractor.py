@@ -31,7 +31,8 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
             "- NO Unicode math symbols - use LaTeX commands only\n"
             "- Clean up OCR artifacts: remove stray spaces in subscripts, fix broken commands\n\n"
             "Respond with ONLY a JSON object in this exact format:\n"
-            '{{"chunks": [{{"latex": "<properly formatted LaTeX>", "context": "<short description>", "equation_type": "<type>", "source_text": "<optional exact snippet from paper>"}}, ...]}}\n'
+            '{{"chunks": [{{"latex": "<properly formatted LaTeX>", "context": "<short description>", "equation_type": "<type>", "source_text": "<SINGLE STRING, not array>"}}, ...]}}\n'
+            "IMPORTANT: source_text must be a single string. If you need multiple snippets, join them with spaces.\n"
             "Include every distinct equation or formula. Only return {{}} if the paper truly has no equations, no metrics, and no formulas at all."
         )),
         ("human", "Extract all mathematical content from:\n\n{paper_text}")
@@ -47,6 +48,7 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
         print("[MathExtractor] parsed", len(chunks), "chunks", flush=True)
     except Exception as e:
         print("[MathExtractor] parse failed:", e, flush=True)
+        print(f"[MathExtractor] First 1000 chars of raw response: {raw[:1000]}", flush=True)
         match = re.search(r'"chunks"\s*:\s*\[', raw)
         if match:
             start = raw.find("[", match.start())
@@ -64,11 +66,17 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
                             arr = json.loads(arr_str)
                             for item in arr:
                                 if isinstance(item, dict) and item.get("latex"):
+                                    source_text_raw = item.get("source_text", "")
+                                    source_text = (
+                                        '\n'.join(str(s) for s in source_text_raw if s)
+                                        if isinstance(source_text_raw, list)
+                                        else str(source_text_raw)
+                                    )
                                     chunks.append({
                                         "latex": str(item.get("latex", "")),
                                         "context": str(item.get("context", "")),
                                         "equation_type": str(item.get("equation_type", "equation")),
-                                        "source_text": str(item.get("source_text", "")),
+                                        "source_text": source_text,
                                     })
                             if chunks:
                                 print("[MathExtractor] fallback parsed", len(chunks), "chunks", flush=True)

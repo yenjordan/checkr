@@ -360,7 +360,14 @@ def _parse_and_validate(raw: str) -> tuple[dict | None, str | None]:
 
 
 async def _translate_chunk(latex: str, context: str, eq_type: str) -> tuple[dict | None, str | None]:
-    raw = (await (TRANSLATE_PROMPT | llm).ainvoke({"latex": latex, "context": context, "equation_type": eq_type})).content or ""
+    try:
+        raw = (await (TRANSLATE_PROMPT | llm).ainvoke({"latex": latex, "context": context, "equation_type": eq_type})).content or ""
+    except Exception as e:
+        error_msg = str(e)
+        if "429" in error_msg or "Too Many Requests" in error_msg:
+            return None, "Rate limit exceeded - skipping verification"
+        return None, f"LLM error: {error_msg}"
+
     raw = raw.strip()
     result, err = _parse_and_validate(raw)
     if result is not None:
@@ -375,7 +382,15 @@ async def _translate_chunk(latex: str, context: str, eq_type: str) -> tuple[dict
             return {"type": "definition", "lhs": lhs_hint, "rhs": extracted_rhs, "expr": "", "free_symbols": free_syms}, None
         except Exception:
             pass
-    raw = (await (RETRY_PROMPT | llm).ainvoke({"latex": latex, "previous": raw, "error": err})).content or ""
+
+    try:
+        raw = (await (RETRY_PROMPT | llm).ainvoke({"latex": latex, "previous": raw, "error": err})).content or ""
+    except Exception as e:
+        error_msg = str(e)
+        if "429" in error_msg or "Too Many Requests" in error_msg:
+            return None, "Rate limit exceeded - skipping verification"
+        return None, f"LLM retry error: {error_msg}"
+
     raw = raw.strip()
     result, _ = _parse_and_validate(raw)
     if result is not None:
