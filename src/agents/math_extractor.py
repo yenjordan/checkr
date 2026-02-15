@@ -1,8 +1,9 @@
+import asyncio
 from schemas import AgentFState, MathExtractorOutput
 from langchain_core.prompts import ChatPromptTemplate
 from config import llm
 import re
-from utils import parse_json_response
+from utils import parse_json_response, fix_json_with_llm
 
 async def MathExtractorAgent(state: AgentFState) -> AgentFState:
     paper_text = state.get("query") or ""
@@ -47,39 +48,45 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
         print("[MathExtractor] parsed", len(chunks), "chunks", flush=True)
     except Exception as e:
         print("[MathExtractor] parse failed:", e, flush=True)
-        match = re.search(r'"chunks"\s*:\s*\[', raw)
-        if match:
-            start = raw.find("[", match.start())
-            depth = 0
-            for i in range(start, len(raw)):
-                c = raw[i]
-                if c == "[":
-                    depth += 1
-                elif c == "]":
-                    depth -= 1
-                    if depth == 0:
-                        arr_str = raw[start : i + 1]
-                        try:
-                            import json
-                            arr = json.loads(arr_str)
-                            for item in arr:
-                                if isinstance(item, dict) and item.get("latex"):
-                                    st = item.get("source_text", "")
-                                    if isinstance(st, list):
-                                        st = " ".join(str(x) for x in st)
-                                    else:
-                                        st = str(st) if st else ""
-                                    chunks.append({
-                                        "latex": str(item.get("latex", "")),
-                                        "context": str(item.get("context", "")),
-                                        "equation_type": str(item.get("equation_type", "equation")),
-                                        "source_text": st,
-                                    })
-                            if chunks:
-                                print("[MathExtractor] fallback parsed", len(chunks), "chunks", flush=True)
-                        except Exception:
-                            pass
-                        break
+        try:
+            result = await asyncio.to_thread(fix_json_with_llm, raw, MathExtractorOutput, llm)
+            chunks = [{"latex": c.latex, "context": c.context, "equation_type": c.equation_type, "source_text": getattr(c, "source_text", "") or ""} for c in (result.chunks or [])]
+            print("[MathExtractor] LLM-fixed JSON, parsed", len(chunks), "chunks", flush=True)
+        except Exception as e2:
+            print("[MathExtractor] LLM fix failed:", e2, flush=True)
+            match = re.search(r'"chunks"\s*:\s*\[', raw)
+            if match:
+                start = raw.find("[", match.start())
+                depth = 0
+                for i in range(start, len(raw)):
+                    c = raw[i]
+                    if c == "[":
+                        depth += 1
+                    elif c == "]":
+                        depth -= 1
+                        if depth == 0:
+                            arr_str = raw[start : i + 1]
+                            try:
+                                import json
+                                arr = json.loads(arr_str)
+                                for item in arr:
+                                    if isinstance(item, dict) and item.get("latex"):
+                                        st = item.get("source_text", "")
+                                        if isinstance(st, list):
+                                            st = " ".join(str(x) for x in st)
+                                        else:
+                                            st = str(st) if st else ""
+                                        chunks.append({
+                                            "latex": str(item.get("latex", "")),
+                                            "context": str(item.get("context", "")),
+                                            "equation_type": str(item.get("equation_type", "equation")),
+                                            "source_text": st,
+                                        })
+                                if chunks:
+                                    print("[MathExtractor] fallback parsed", len(chunks), "chunks", flush=True)
+                            except Exception:
+                                pass
+                            break
 
     return {
         "subagent_responses": {

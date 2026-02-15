@@ -1,3 +1,4 @@
+import json
 import re
 from typing import Type, TypeVar, Optional, Any
 
@@ -5,6 +6,48 @@ from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
+
+
+def _schema_description_for_model(model: Type[BaseModel]) -> str:
+    try:
+        schema = model.model_json_schema()
+        return json.dumps(schema, indent=0)[:1200]
+    except Exception:
+        return '{"chunks": [{"latex": "...", "context": "...", "equation_type": "...", "source_text": "..."}, ...]}'
+
+
+def _extract_json_from_llm_output(text: str) -> str:
+    """Strip markdown/code fences and return the JSON part for validation."""
+    if not text or not text.strip():
+        return ""
+    text = text.strip()
+    match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    start = text.find("{")
+    if start != -1:
+        return text[start:].strip()
+    return text
+
+
+def fix_json_with_llm(raw: str, model: Type[T], llm: Any) -> T:
+    schema_desc = _schema_description_for_model(model)
+    prompt = (
+        "The following JSON may be truncated, malformed, or contain syntax errors. "
+        "Fix or complete it so it is valid and matches the expected schema. "
+        "Preserve all content; only fix structure (close brackets, escape quotes, fix commas). "
+        "Output ONLY the corrected JSON: no explanation, no markdown code fences, no surrounding text.\n\n"
+        "Expected schema (for reference):\n"
+        f"{schema_desc}\n\n"
+        "Broken JSON:\n\n"
+        f"{raw}"
+    )
+    response = llm.invoke([HumanMessage(content=prompt)])
+    out = getattr(response, "content", None) or str(response)
+    extracted = _extract_json_from_llm_output(out)
+    if not extracted:
+        raise ValueError("LLM returned no JSON")
+    return model.model_validate_json(extracted)
 
 
 def _sanitize_json_string(text: str) -> str:
@@ -108,11 +151,7 @@ def parse_json_response(text: str, model: Type[T], llm: Optional[Any] = None) ->
 
     if llm is not None:
         try:
-            prompt = "Fix the following JSON so it is valid. Preserve all content. Output only the corrected JSON, no other text.\n\n" + raw
-            fixed = llm.invoke([HumanMessage(content=prompt)])
-            out = getattr(fixed, "content", None) or str(fixed)
-            if out and out.strip():
-                return model.model_validate_json(out.strip())
+            return fix_json_with_llm(raw, model, llm)
         except Exception as e:
             last_error = e
 

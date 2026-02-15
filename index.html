@@ -3546,15 +3546,40 @@
           html += `</div>`;
         }
 
+        /* Extract LaTeX from proof step detail (handles one or multiple $...$ / $$...$$ segments) */
+        function latexFromProofDetail(detail) {
+          if (!detail || typeof detail !== 'string') return '';
+          const parts = [];
+          let m;
+          const reDisplay = /\$\$([\s\S]+?)\$\$/g;
+          const reInline = /\$([^$\n]+)\$/g;
+          while ((m = reDisplay.exec(detail)) !== null) parts.push(m[1].trim());
+          if (parts.length) return parts.join(' ');
+          while ((m = reInline.exec(detail)) !== null) parts.push(m[1].trim());
+          return parts.length ? parts.join(' ') : '';
+        }
+        /* True LaTeX contains backslash commands; SymPy-style (e.g. "ET", "Sum(...)") does not */
+        function detailLooksLikeLatex(detail) {
+          if (!detail || typeof detail !== 'string') return false;
+          return /\\frac|\\sum|\\text|\\cdot|\\alpha|\\beta|\\sqrt|\\int|\\left|\\right|\\overline/.test(detail);
+        }
         /* per-chunk cards */
         mathChunks.forEach((chunk, i) => {
-          mathChunkLatex.push(chunk.latex || '');
+          const proof = chunk.proof || {};
+          const steps = proof.steps || [];
+          let cardLatex = chunk.latex || '';
+          if (steps.length) {
+            const laTeXStep = steps.find(s => s.detail && detailLooksLikeLatex(s.detail));
+            if (laTeXStep) {
+              const fromStep = latexFromProofDetail(laTeXStep.detail);
+              if (fromStep) cardLatex = fromStep;
+            }
+          }
+          mathChunkLatex.push(cardLatex);
           const typeLabel = (chunk.equation_type || 'equation').replace(/_/g, ' ');
           const vs = chunk.verification_status;
           const statusClass = vs === 'verified' ? 'valid' : vs === 'failed' ? 'invalid' : '';
           const statusLabel = vs === 'verified' ? 'Verified' : vs === 'failed' ? 'Failed' : vs === 'error' ? 'Error' : vs ? 'Inconclusive' : '';
-          const proof = chunk.proof || {};
-          const steps = proof.steps || [];
 
           // Lean verification status
           const leanSuccess = chunk.lean_success;
@@ -3600,6 +3625,9 @@
 
         // Remove any markdown code fences or extra backticks
         tex = tex.replace(/^```latex?\s*/i, '').replace(/```$/, '').replace(/^`+|`+$/g, '');
+
+        // In LaTeX/KaTeX, bare % starts a comment and hides the rest — escape so full equation shows
+        tex = tex.replace(/(?<!\\)%/g, '\\%');
 
         // Fix common OCR issues
         tex = tex.replace(/\s+/g, ' '); // normalize whitespace

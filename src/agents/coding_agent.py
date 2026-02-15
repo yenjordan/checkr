@@ -25,26 +25,18 @@ async def CodingAgent(state: AgentFState) -> AgentFState:
 
     coding_prompt = ChatPromptTemplate.from_messages([
         ("system", (
-            "You are an expert code reviewer who analyzes code from research papers for FUNDAMENTAL correctness. "
-            "Your job is to determine whether the code is conceptually sound and aligned with the paper's claims.\n\n"
-            "CRITICAL: These are code SNIPPETS extracted from a paper — they are NOT complete programs. "
-            "Do NOT flag issues that are artifacts of incomplete extraction, such as:\n"
-            "- Missing imports, undefined variables, or missing helper functions (these exist elsewhere in the paper/codebase)\n"
-            "- Minor syntax issues from OCR or formatting (missing colons, indentation)\n"
-            "- Missing context or setup code\n"
-            "- Variables referenced but not defined in the snippet\n\n"
-            "DO flag these HIGH-VALUE issues:\n"
-            "- Algorithmic errors: the logic doesn't match what the paper claims it does\n"
-            "- Incorrect math/formulas translated to code (wrong operations, off-by-one in critical computations)\n"
-            "- Fundamental mismatches between the code's behavior and the paper's stated methodology\n"
-            "- Hardcoded values that contradict the paper's described parameters\n"
-            "- Logic that would produce incorrect results even with all dependencies present\n\n"
-            "If the code snippets are fundamentally in the right direction for the paper's claims, "
-            "mark is_conceptually_correct as true even if there are minor snippet-level issues.\n\n"
-            "Respond with ONLY a JSON object in this exact format:\n"
-            '{{"is_conceptually_correct": true, "issues": ["issue1", ...], "explanation": "..."}}'
+            "Analyze code snippets from a research paper for conceptual correctness only. "
+            "These are snippets, not complete programs.\n\n"
+            "DO NOT consider syntax. Ignore: syntax errors, IndentationError, missing colons/braces, "
+            "OCR/formatting issues, missing imports, undefined names, incomplete extraction. "
+            "If the ONLY reason to fail would be syntax or snippet-level issues, set is_conceptually_correct to true "
+            "and do NOT mention syntax in issues or explanation.\n\n"
+            "Set is_conceptually_correct to false ONLY for: wrong algorithm vs paper, incorrect math/formula in logic, "
+            "or logic that would yield wrong results with dependencies present.\n\n"
+            "Respond with ONLY this JSON (no markdown):\n"
+            '{{"is_conceptually_correct": true, "issues": [], "explanation": "..."}}'
         )),
-        ("human", "Code snippets from the paper:\n```\n{code_unit}\n```\n\nPaper's claims/methodology:\n{intent}\n\nAnalyze whether this code is fundamentally correct and aligned with the paper's claims.")
+        ("human", "Code:\n```\n{code_unit}\n```\n\nPaper intent:\n{intent}\n\nIs the code conceptually correct? (Ignore syntax.)")
     ])
 
     chain = coding_prompt | llm
