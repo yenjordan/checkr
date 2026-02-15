@@ -186,6 +186,122 @@ async def chat_endpoint(req: ChatRequest):
         )
 
 
+# ── Hume EVI Voice AI Integration ──────────────────────────────────
+# Browser fetches an access token + config_id, then connects directly
+# to Hume's EVI WebSocket with Gemini as the LLM.
+
+_hume_config_id: str | None = None  # cached after first creation
+
+
+async def _get_or_create_hume_config() -> str:
+    """Create a Hume EVI config with Gemini as the LLM (cached after first call)."""
+    import httpx
+
+    global _hume_config_id
+    if _hume_config_id:
+        return _hume_config_id
+
+    api_key = os.environ.get("HUME_API_KEY", "")
+
+    async with httpx.AsyncClient() as client:
+        # Check if we already have a CHECKR config
+        list_resp = await client.get(
+            "https://api.hume.ai/v0/evi/configs",
+            headers={"X-Hume-Api-Key": api_key},
+            params={"page_size": 50},
+        )
+        if list_resp.status_code == 200:
+            configs = list_resp.json().get("configs_page", [])
+            for cfg in configs:
+                if cfg.get("name") == "CHECKR Voice":
+                    _hume_config_id = cfg["id"]
+                    print(f"[Hume] Reusing config: {_hume_config_id}")
+                    return _hume_config_id
+
+        # Create a new config with Gemini + EVI 3 voice
+        create_resp = await client.post(
+            "https://api.hume.ai/v0/evi/configs",
+            headers={
+                "X-Hume-Api-Key": api_key,
+                "Content-Type": "application/json",
+            },
+            json={
+                "evi_version": "3",
+                "name": "CHECKR Voice",
+                "voice": {
+                    "provider": "HUME_AI",
+                    "id": "9e068547-5ba4-4c8e-8e03-69282a008f04",
+                },
+                "language_model": {
+                    "model_provider": "GOOGLE",
+                    "model_resource": "gemini-2.0-flash",
+                },
+            },
+        )
+        if create_resp.status_code in (200, 201):
+            data = create_resp.json()
+            _hume_config_id = data.get("id")
+            print(f"[Hume] Created config: {_hume_config_id}")
+            return _hume_config_id
+
+        print(f"[Hume] Config creation failed: {create_resp.status_code} {create_resp.text}")
+        return ""
+
+
+@app.post("/api/hume/token")
+async def hume_access_token():
+    """Generate a short-lived Hume access token + config_id for the browser."""
+    import httpx
+    import base64
+
+    api_key = os.environ.get("HUME_API_KEY", "")
+    secret_key = os.environ.get("HUME_SECRET_KEY", "")
+    if not api_key or not secret_key:
+        return JSONResponse(status_code=500, content={"error": "HUME_API_KEY / HUME_SECRET_KEY not configured."})
+
+    credentials = base64.b64encode(f"{api_key}:{secret_key}".encode()).decode()
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://api.hume.ai/oauth2-cc/token",
+            headers={
+                "Authorization": f"Basic {credentials}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            data="grant_type=client_credentials",
+        )
+        if resp.status_code != 200:
+            return JSONResponse(status_code=resp.status_code, content={"error": resp.text})
+
+        token_data = resp.json()
+
+    # Ensure the Gemini config exists
+    config_id = await _get_or_create_hume_config()
+
+    return {
+        "access_token": token_data.get("access_token"),
+        "config_id": config_id,
+    }
+
+
+@app.get("/api/hume/context")
+async def hume_paper_context(filename: str):
+    """Build a voice-optimized system prompt + context for Hume EVI."""
+    from services.rag_chat import _build_context, _get_system_prompt
+
+    row = fetch_paper_context(filename)
+    if not row:
+        return JSONResponse(status_code=404, content={"error": "No analysis found."})
+
+    system_prompt = _get_system_prompt(voice=True)
+    paper_context = _build_context(row)
+
+    return {
+        "system_prompt": system_prompt,
+        "context": paper_context,
+    }
+
+
 @app.post("/api/ocr")
 async def ocr_pdf(file: UploadFile = File(...)):
     """Run OCR on a PDF and return a searchable version with selectable text."""

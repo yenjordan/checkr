@@ -1554,6 +1554,40 @@
       line-height: 1.6;
     }
 
+    .chat-welcome-sub {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--muted);
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+
+    .chat-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .chat-suggestion {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--faint);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--ink);
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .chat-suggestion:hover {
+      border-color: var(--muted);
+      background: rgba(255,255,255,0.9);
+    }
+
     /* ── Chat input ──────────────────────────── */
     .chat-input-area {
       position: relative;
@@ -1674,6 +1708,182 @@
     .chat-msg.assistant.typing {
       color: var(--muted);
       font-style: italic;
+    }
+
+    .typing-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      height: 16px;
+    }
+
+    .typing-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: typingBounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* ── Voice call UI ──────────────────────── */
+    .chat-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chat-call-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(0,0,0,0.2);
+      border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .chat-call-btn:hover {
+      border-color: #2ecc71;
+      background: rgba(46,204,113,0.1);
+    }
+
+    .chat-call-btn svg {
+      width: 13px;
+      height: 13px;
+      fill: var(--ink);
+    }
+
+    .voice-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: rgba(250,249,247,0.95);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .voice-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .voice-ring {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .voice-ring-pulse {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 1.5px solid var(--ink);
+      opacity: 0;
+      animation: voicePulse 2s ease-out infinite;
+    }
+
+    .voice-ring-pulse:nth-child(2) { animation-delay: 0.6s; }
+
+    @keyframes voicePulse {
+      0% { transform: scale(1); opacity: 0.4; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    .voice-ring svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--ink);
+    }
+
+    .voice-status {
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--ink);
+      text-align: center;
+    }
+
+    .voice-status-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .voice-transcript {
+      width: 85%;
+      max-height: 120px;
+      overflow-y: auto;
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      scrollbar-width: none;
+    }
+
+    .voice-transcript::-webkit-scrollbar { display: none; }
+
+    .voice-transcript .vt-user {
+      color: var(--muted);
+      opacity: 0.6;
+    }
+
+    .voice-transcript .vt-assistant {
+      color: var(--ink);
+    }
+
+    .voice-end-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: #e74c3c;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .voice-end-btn:hover {
+      background: #c0392b;
+      transform: scale(1.05);
+    }
+
+    .voice-end-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+
+    .voice-connecting {
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 300;
     }
 
     @media (max-width: 900px) {
@@ -1824,19 +2034,48 @@
       <div class="chat-bg-overlay"></div>
 
       <div class="chat-header">
-        <span class="chat-header-title">Chat with CHECKR</span>
-        <button class="chat-close" id="chatClose">
-          <svg viewBox="0 0 24 24" fill="none">
-            <line x1="6" y1="6" x2="18" y2="18"/>
-            <line x1="18" y1="6" x2="6" y2="18"/>
-          </svg>
+        <span class="chat-header-title">CHECKR AI</span>
+        <div class="chat-header-actions">
+          <button class="chat-call-btn" id="chatCallBtn" title="Voice call">
+            <svg viewBox="0 0 24 24"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.57 3.58a1 1 0 0 1-.24 1.01l-2.2 2.2z"/></svg>
+          </button>
+          <button class="chat-close" id="chatClose">
+            <svg viewBox="0 0 24 24" fill="none">
+              <line x1="6" y1="6" x2="18" y2="18"/>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Voice call overlay -->
+      <div class="voice-overlay" id="voiceOverlay">
+        <div class="voice-ring">
+          <div class="voice-ring-pulse"></div>
+          <div class="voice-ring-pulse"></div>
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        </div>
+        <div class="voice-status">
+          <div id="voiceStatusText">Speaking with CHECKR</div>
+          <div class="voice-status-sub" id="voiceStatusSub">Listening...</div>
+        </div>
+        <div class="voice-transcript" id="voiceTranscript"></div>
+        <button class="voice-end-btn" id="voiceEndBtn" title="End call">
+          <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
         </button>
       </div>
 
       <div class="chat-messages" id="chatMessages">
         <div class="chat-welcome">
           <img class="chat-welcome-icon" src="assets/spark.png" alt="">
-          <div class="chat-welcome-text">Ask me anything about your paper.</div>
+          <div class="chat-welcome-text">Let's talk about your paper.</div>
+          <div class="chat-welcome-sub">I've analyzed the math, code, and methodology.</div>
+          <div class="chat-suggestions">
+            <button class="chat-suggestion" data-q="What are the key findings of this paper?">Key findings</button>
+            <button class="chat-suggestion" data-q="Walk me through the main equations and whether they check out.">Math check</button>
+            <button class="chat-suggestion" data-q="Did the code run correctly? Any issues?">Code results</button>
+            <button class="chat-suggestion" data-q="What methodology concerns did you find?">Methodology</button>
+          </div>
         </div>
       </div>
 
@@ -2195,21 +2434,41 @@
     });
 
     chatClose.addEventListener('click', () => {
+      endVoiceCall();
       chatPanel.classList.remove('open');
       sparkBtn.classList.remove('hidden');
     });
 
     /* close chat when leaving analysis view */
     function closeChatPanel() {
+      endVoiceCall();
       chatPanel.classList.remove('open');
       sparkBtn.classList.remove('hidden');
       chatHistory = [];
       chatMessages.innerHTML = `
         <div class="chat-welcome">
           <img class="chat-welcome-icon" src="assets/spark.png" alt="">
-          <div class="chat-welcome-text">Ask me anything about your paper.</div>
+          <div class="chat-welcome-text">Let's talk about your paper.</div>
+          <div class="chat-welcome-sub">I've analyzed the math, code, and methodology.</div>
+          <div class="chat-suggestions">
+            <button class="chat-suggestion" data-q="What are the key findings of this paper?">Key findings</button>
+            <button class="chat-suggestion" data-q="Walk me through the main equations and whether they check out.">Math check</button>
+            <button class="chat-suggestion" data-q="Did the code run correctly? Any issues?">Code results</button>
+            <button class="chat-suggestion" data-q="What methodology concerns did you find?">Methodology</button>
+          </div>
         </div>`;
+      bindSuggestionButtons();
     }
+
+    function bindSuggestionButtons() {
+      chatMessages.querySelectorAll('.chat-suggestion').forEach(btn => {
+        btn.addEventListener('click', () => {
+          chatInput.value = btn.dataset.q;
+          sendChatMessage();
+        });
+      });
+    }
+    bindSuggestionButtons();
 
     function formatChatText(raw) {
       /* Pull out LaTeX blocks before escaping so delimiters survive.
@@ -2297,9 +2556,14 @@
       chatInput.value = '';
       appendChatMsg('user', question);
 
-      /* show typing indicator */
-      const typingBubble = appendChatMsg('assistant', 'Thinking...');
-      typingBubble.classList.add('typing');
+      /* show typing indicator with animated dots */
+      const typingBubble = document.createElement('div');
+      typingBubble.className = 'chat-msg assistant typing';
+      typingBubble.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+      const welcome = chatMessages.querySelector('.chat-welcome');
+      if (welcome) welcome.remove();
+      chatMessages.appendChild(typingBubble);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
 
       try {
         const res = await fetch('/api/chat', {
@@ -2335,6 +2599,240 @@
         sendChatMessage();
       }
     });
+
+    /* ── Hume EVI Voice Call ────────────────── */
+    const chatCallBtn = document.getElementById('chatCallBtn');
+    const voiceOverlay = document.getElementById('voiceOverlay');
+    const voiceEndBtn = document.getElementById('voiceEndBtn');
+    const voiceTranscript = document.getElementById('voiceTranscript');
+    const voiceStatusText = document.getElementById('voiceStatusText');
+    const voiceStatusSub = document.getElementById('voiceStatusSub');
+
+    let humeSocket = null;
+    let voiceRecorder = null;
+    /* Queue-based audio playback (recommended by Hume docs) */
+    let voiceAudioQueue = [];
+    let voiceCurrentAudio = null;
+    let voiceIsPlaying = false;
+
+    chatCallBtn.addEventListener('click', startVoiceCall);
+    voiceEndBtn.addEventListener('click', endVoiceCall);
+
+    async function startVoiceCall() {
+      if (!currentFile) return;
+      voiceOverlay.classList.add('active');
+      voiceStatusText.textContent = 'Connecting...';
+      voiceStatusSub.textContent = '';
+      voiceTranscript.innerHTML = '';
+
+      try {
+        /* 1. Get access token + Gemini config_id */
+        const tokenRes = await fetch('/api/hume/token', { method: 'POST' });
+        if (!tokenRes.ok) throw new Error('Failed to get Hume token');
+        const tokenData = await tokenRes.json();
+        const accessToken = tokenData.access_token;
+        const configId = tokenData.config_id;
+        console.log('[Voice] Got token, config:', configId);
+
+        /* 2. Get paper context for system prompt */
+        const ctxRes = await fetch(`/api/hume/context?filename=${encodeURIComponent(currentFile.name)}`);
+        let systemPrompt = 'You are CHECKR, an expert AI research analyst. Help the user discuss their paper.';
+        if (ctxRes.ok) {
+          const ctxData = await ctxRes.json();
+          systemPrompt = ctxData.system_prompt + '\n\nPAPER ANALYSIS DATA:\n' + ctxData.context;
+        } else {
+          console.warn('[Voice] No paper context, using default prompt');
+        }
+
+        /* 3. Connect WebSocket to Hume EVI with Gemini config */
+        let wsUrl = `wss://api.hume.ai/v0/evi/chat?access_token=${encodeURIComponent(accessToken)}`;
+        if (configId) wsUrl += `&config_id=${encodeURIComponent(configId)}`;
+        humeSocket = new WebSocket(wsUrl);
+
+        humeSocket.onopen = () => {
+          console.log('[Voice] WebSocket connected');
+          /* Send session settings with paper context as system prompt */
+          humeSocket.send(JSON.stringify({
+            type: 'session_settings',
+            system_prompt: systemPrompt,
+          }));
+
+          voiceStatusText.textContent = 'Speaking with CHECKR';
+          voiceStatusSub.textContent = 'Listening...';
+
+          /* Start capturing microphone AFTER WebSocket opens (required for WebM header) */
+          startVoiceRecording();
+        };
+
+        humeSocket.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+          console.log('[Voice] EVI msg:', msg.type, msg.type === 'error' ? msg : '');
+          handleEviMessage(msg);
+        };
+
+        humeSocket.onerror = (err) => {
+          console.error('[Voice] WebSocket error:', err);
+          voiceStatusText.textContent = 'Connection error';
+          voiceStatusSub.textContent = 'Please try again';
+        };
+
+        humeSocket.onclose = (evt) => {
+          console.log('[Voice] WebSocket closed:', evt.code, evt.reason);
+          stopVoiceRecording();
+          voiceStatusText.textContent = 'Call ended';
+          voiceStatusSub.textContent = '';
+          setTimeout(() => voiceOverlay.classList.remove('active'), 1500);
+        };
+
+      } catch (err) {
+        console.error('[Voice]', err);
+        voiceStatusText.textContent = 'Could not connect';
+        voiceStatusSub.textContent = err.message || 'Please try again';
+        setTimeout(() => voiceOverlay.classList.remove('active'), 2500);
+      }
+    }
+
+    async function startVoiceRecording() {
+      try {
+        /* Enable echo cancellation, noise suppression, and auto gain */
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        });
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : 'audio/mp4';
+
+        console.log('[Voice] Recording with:', mimeType);
+        voiceRecorder = new MediaRecorder(stream, { mimeType });
+        voiceRecorder.ondataavailable = async (e) => {
+          if (e.data.size > 0 && humeSocket && humeSocket.readyState === WebSocket.OPEN) {
+            const base64 = await blobToBase64(e.data);
+            humeSocket.send(JSON.stringify({ type: 'audio_input', data: base64 }));
+          }
+        };
+        voiceRecorder.start(100); /* send chunks every 100ms */
+      } catch (err) {
+        console.error('[Voice] Mic access denied:', err);
+        voiceStatusSub.textContent = 'Microphone access denied';
+      }
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function stopVoiceRecording() {
+      if (voiceRecorder) {
+        try { voiceRecorder.stop(); } catch(e) {}
+        voiceRecorder.stream.getTracks().forEach(t => t.stop());
+        voiceRecorder = null;
+      }
+    }
+
+    function handleEviMessage(msg) {
+      switch (msg.type) {
+        case 'audio_output':
+          enqueueVoiceAudio(msg.data);
+          voiceStatusSub.textContent = 'Speaking...';
+          break;
+        case 'user_message':
+          if (msg.message && msg.message.content) {
+            addVoiceTranscript('You', msg.message.content);
+            voiceStatusSub.textContent = 'Thinking...';
+          }
+          break;
+        case 'assistant_message':
+          if (msg.message && msg.message.content) {
+            addVoiceTranscript('CHECKR', msg.message.content);
+          }
+          break;
+        case 'assistant_end':
+          voiceStatusSub.textContent = 'Listening...';
+          break;
+        case 'user_interruption':
+          stopVoicePlayback();
+          voiceStatusSub.textContent = 'Listening...';
+          break;
+        case 'error':
+          console.error('[EVI Error]', msg);
+          voiceStatusSub.textContent = 'Error: ' + (msg.message || 'unknown');
+          break;
+      }
+    }
+
+    function addVoiceTranscript(speaker, text) {
+      const cls = speaker === 'You' ? 'vt-user' : 'vt-assistant';
+      const el = document.createElement('div');
+      el.className = cls;
+      el.textContent = `${speaker}: ${text}`;
+      voiceTranscript.appendChild(el);
+      voiceTranscript.scrollTop = voiceTranscript.scrollHeight;
+    }
+
+    /* ── Queue-based audio playback via HTML Audio (per Hume docs) ──── */
+    function enqueueVoiceAudio(base64Data) {
+      /* Convert base64 WAV to Blob and queue for playback */
+      const binaryStr = atob(base64Data);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'audio/wav' });
+      voiceAudioQueue.push(blob);
+      if (!voiceIsPlaying) playNextVoiceAudio();
+    }
+
+    function playNextVoiceAudio() {
+      if (voiceAudioQueue.length === 0) {
+        voiceIsPlaying = false;
+        return;
+      }
+      voiceIsPlaying = true;
+      const blob = voiceAudioQueue.shift();
+      const url = URL.createObjectURL(blob);
+      voiceCurrentAudio = new Audio(url);
+      voiceCurrentAudio.play().catch(err => {
+        console.error('[Voice] Playback error:', err);
+        voiceIsPlaying = false;
+        /* Try next chunk if this one fails */
+        if (voiceAudioQueue.length > 0) playNextVoiceAudio();
+      });
+      voiceCurrentAudio.onended = () => {
+        URL.revokeObjectURL(url);
+        playNextVoiceAudio();
+      };
+    }
+
+    function stopVoicePlayback() {
+      if (voiceCurrentAudio) {
+        voiceCurrentAudio.pause();
+        voiceCurrentAudio = null;
+      }
+      voiceIsPlaying = false;
+      voiceAudioQueue.length = 0;
+    }
+
+    function endVoiceCall() {
+      stopVoiceRecording();
+      stopVoicePlayback();
+      if (humeSocket) {
+        humeSocket.close();
+        humeSocket = null;
+      }
+      voiceOverlay.classList.remove('active');
+    }
 
     /* ── Check Paper button ──────────────────── */
     checkBtn.addEventListener('click', async () => {

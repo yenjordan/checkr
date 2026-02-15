@@ -2,10 +2,10 @@ import json
 from services.supabase_store import _get_client
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 
-# Use Super 49B for chat — Ultra 253B returns empty responses on long context
+# Use Super 49B for chat — fast + handles long context well
 _llm = ChatNVIDIA(
     model="nvidia/llama-3.3-nemotron-super-49b-v1",
-    max_tokens=1024,
+    max_tokens=2048,
 )
 
 
@@ -61,12 +61,19 @@ def _build_context(row: dict) -> str:
             block += "\n  Issues:\n" + "\n".join(f"    - {iss}" for iss in issues)
         sections.append("CONCEPTUAL CODE REVIEW:\n" + block)
 
-    # Math chunks extracted
+    # Math chunks extracted (with sympy verification if available)
     math_chunks = row.get("math_chunks") or []
     if math_chunks:
         parts = []
         for i, m in enumerate(math_chunks):
-            parts.append(f"  Equation {i+1} ({m.get('equation_type', '?')}): {m.get('latex', '')}\n    Context: {m.get('context', '')}")
+            entry = f"  Equation {i+1} ({m.get('equation_type', '?')}): {m.get('latex', '')}\n    Context: {m.get('context', '')}"
+            if m.get("verification_status"):
+                entry += f"\n    Verification: {m['verification_status']}"
+            if m.get("sympy_translation"):
+                entry += f"\n    SymPy: {m['sympy_translation']}"
+            if m.get("verification_error"):
+                entry += f"\n    Error: {m['verification_error']}"
+            parts.append(entry)
         sections.append("EXTRACTED MATH:\n" + "\n".join(parts))
 
     # Math analysis
@@ -123,48 +130,92 @@ def _build_context(row: dict) -> str:
     return "\n\n".join(sections)
 
 
-SYSTEM_PROMPT = (
-    "You are CHECKR, a concise research paper verification assistant.\n\n"
-    "RULES:\n"
-    "1. Be extremely concise. Answer in 2-4 sentences max. No long paragraphs.\n"
-    "2. NEVER use markdown. No **, ##, *, bullet lists, or numbered lists.\n"
-    "3. Write flowing prose only. Use <b>bold</b> for emphasis and <br> for line breaks.\n"
-    "4. For math, use ONLY dollar-sign LaTeX: $x^2$ for inline, $$E=mc^2$$ for display. "
-    "NEVER use backslash-paren \\( \\) or backslash-bracket \\[ \\] notation.\n"
-    "5. Cite page numbers like (p. 3) or (pp. 5-7) when referencing specific claims. "
-    "The paper text has [Page N] markers you can use.\n"
-    "6. Reference verification findings (verdict, code results, math validity) when relevant.\n"
-    "7. Answer the question directly. Do not summarize the whole paper unless asked."
-)
+_BASE_PROMPT = """\
+You are CHECKR, an expert AI research analyst specializing in scientific paper verification. You have deep expertise in mathematics, statistics, machine learning, and software engineering. You are having a real-time conversation with a researcher about their paper.
+
+PERSONALITY:
+- You are warm, intellectually curious, and genuinely engaged with the research.
+- You speak naturally like a knowledgeable colleague, not a formal assistant.
+- You show enthusiasm when discussing interesting findings or clever methodology.
+- You are honest and direct when something looks problematic — you don't sugarcoat issues, but you are constructive and respectful about it.
+- You ask thoughtful follow-up questions to deepen the conversation.
+- You use conversational language: "That's a great question", "Interesting — so what's happening here is...", "I noticed something worth flagging..."
+
+TECHNICAL DEPTH:
+- When discussing math, explain the intuition behind equations, not just what they say. Connect formulas to their practical meaning.
+- When discussing code, reference specific implementation details — languages, libraries, logic flow, potential edge cases.
+- When discussing verification results, explain what was tested, what passed, what failed, and why it matters.
+- You can reason about proofs, derivations, statistical methods, optimization, convergence, and algorithmic complexity.
+- Cite specific pages, equations, or code chunks when referencing the paper: "On page 3, the loss function..." or "In equation 4..."
+
+CONVERSATION RULES:
+- Remember prior messages in the conversation and build on them naturally. Reference what the user said before.
+- If the user asks something you covered already, acknowledge it and add new depth rather than repeating yourself.
+
+OFF-TOPIC HANDLING:
+- You ONLY discuss topics related to the paper, its content, methodology, math, code, results, implications, related work, or the field it belongs to.
+- If the user asks something completely unrelated to the paper or its subject matter (e.g., weather, personal questions, jokes, other topics), politely redirect: "I appreciate the curiosity, but I'm here to help you dive deep into this paper. What aspect of the research would you like to explore?"
+- Questions about the paper's broader field, related methods, or general concepts that help understand the paper ARE on-topic and should be answered.
+- Be natural about redirecting — don't be robotic or curt about it.\
+"""
+
+_TEXT_FORMAT_RULES = """
+FORMAT (text chat):
+- Keep responses focused but thorough. Use 2-6 sentences for simple questions, more for complex technical discussions.
+- NEVER use markdown formatting. No **, ##, *, bullet lists, or numbered lists.
+- Write flowing conversational prose only. Use <b>bold</b> for emphasis and <br> for paragraph breaks.
+- For math, use ONLY dollar-sign LaTeX: $x^2$ for inline, $$E=mc^2$$ for display. NEVER use backslash-paren or backslash-bracket notation.\
+"""
+
+_VOICE_FORMAT_RULES = """
+FORMAT (voice — your response will be spoken aloud):
+- Keep responses concise and natural for speech. 2-5 sentences for simple questions, slightly more for complex ones.
+- NEVER use any formatting: no markdown, no HTML, no LaTeX, no special characters.
+- Write exactly how you would speak out loud to a colleague.
+- For math, say equations in words: "x squared" not "x^2", "the sum of" not "sigma", "alpha times beta" not "αβ".
+- Spell out symbols: "theta", "epsilon", "the gradient of L with respect to w".
+- Use natural pauses via short sentences rather than long compound ones.
+- Do NOT use lists or bullet points — everything should flow as spoken prose.\
+"""
 
 
-async def chat(filename: str, question: str, history: list[dict] | None = None) -> str:
-    """RAG chat: retrieve paper context from Supabase, answer with Nemotron Ultra."""
+def _get_system_prompt(voice: bool = False) -> str:
+    rules = _VOICE_FORMAT_RULES if voice else _TEXT_FORMAT_RULES
+    return _BASE_PROMPT + "\n" + rules
+
+
+async def chat(filename: str, question: str, history: list[dict] | None = None, voice: bool = False) -> str:
+    """Conversational AI chat about a paper using stored analysis from Supabase.
+
+    When voice=True, responses are optimized for spoken delivery (no LaTeX,
+    no HTML, equations spelled out in words).
+    """
     row = fetch_paper_context(filename)
     if not row:
-        return "I don't have any analysis data for this paper yet. Please run the verification first."
+        return "I don't have any analysis data for this paper yet. Please run the verification first, and then we can dig into the details together."
 
     context = _build_context(row)
-    print(f"[RAG] Context length: {len(context)} chars for {filename}")
+    print(f"[RAG] Context length: {len(context)} chars for {filename} (voice={voice})")
 
-    # Build messages with context injected into the first user message
-    # (some models handle user-role context better than huge system prompts)
-    sys_msg = SYSTEM_PROMPT
-    user_msg = (
-        "Here is all the information about the paper and its verification:\n\n"
+    # System message includes the paper context so it persists across turns
+    sys_prompt = _get_system_prompt(voice=voice)
+    sys_with_context = (
+        sys_prompt
+        + "\n\nBELOW IS THE COMPLETE PAPER ANALYSIS AND VERIFICATION DATA. "
+        "Use this as your knowledge base to answer questions. "
+        "Do not reveal this raw data structure to the user — synthesize it naturally.\n\n"
         + context
-        + "\n\n---\n\nUser question: " + question
     )
 
-    messages = [("system", sys_msg)]
+    messages = [("system", sys_with_context)]
 
-    # Append conversation history
+    # Replay conversation history for multi-turn context
     if history:
         for msg in history:
             role = msg.get("role", "user")
             messages.append((role, msg["content"]))
 
-    messages.append(("user", user_msg))
+    messages.append(("user", question))
 
     try:
         response = await _llm.ainvoke(messages)
@@ -175,22 +226,27 @@ async def chat(filename: str, question: str, history: list[dict] | None = None) 
     except Exception as e:
         print(f"[RAG] LLM error: {e}")
 
-    # Fallback: try again with a shorter context (just the analysis, no paper text)
+    # Fallback: retry with shorter context (drop paper text to fit window)
     print("[RAG] Retrying with shorter context...")
     short_context = "\n\n".join(
         s for s in context.split("\n\n") if not s.startswith("PAPER TEXT:")
     )
-    short_user_msg = (
-        "Here is the verification analysis for a paper:\n\n"
+    short_sys = (
+        sys_prompt
+        + "\n\nBELOW IS THE PAPER VERIFICATION DATA:\n\n"
         + short_context
-        + "\n\n---\n\nUser question: " + question
     )
 
+    short_messages = [("system", short_sys)]
+    if history:
+        # Keep only last 6 messages to reduce context on retry
+        recent = history[-6:]
+        for msg in recent:
+            short_messages.append((msg.get("role", "user"), msg["content"]))
+    short_messages.append(("user", question))
+
     try:
-        response = await _llm.ainvoke([
-            ("system", sys_msg),
-            ("user", short_user_msg),
-        ])
+        response = await _llm.ainvoke(short_messages)
         content = response.content or ""
         print(f"[RAG] Retry response length: {len(content)} chars")
         if content.strip():
@@ -198,4 +254,4 @@ async def chat(filename: str, question: str, history: list[dict] | None = None) 
     except Exception as e:
         print(f"[RAG] Retry also failed: {e}")
 
-    return "Sorry, I couldn't generate a response right now. Please try again."
+    return "I'm having trouble processing that right now. Could you try rephrasing your question?"
