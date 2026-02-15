@@ -17,9 +17,9 @@ def check_replanner_result(state: AgentFState) -> str:
         .get("results", [])
     )
     remaining = state.get("remaining_tries", 0)
-    # No code chunks to verify => not a failure, skip code verification
+    # No code chunks to verify => don't treat as success (we didn't verify anything)
     if len(results) == 0:
-        return "success"
+        return "max_attempts"
     all_passed = all(r.get("ran_successfully", False) for r in results)
     if all_passed:
         return "success"

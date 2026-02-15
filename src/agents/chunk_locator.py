@@ -49,8 +49,7 @@ async def locate_chunks(
         chunk_keys.append(("math", i, key))
         latex = ch.get("latex", "")
         ctx = ch.get("context", "")
-        eq_type = ch.get("equation_type", "")
-        chunk_descs.append(f'{key}: LaTeX: {latex}  |  Type: {eq_type}  |  Context: {ctx}')
+        chunk_descs.append(f'{key}: LaTeX: {latex}  |  Context: {ctx}')
 
     for i, ch in enumerate(code_chunks):
         key = f"C{i}"
@@ -72,19 +71,14 @@ async def locate_chunks(
             "1. Numbered lines from a paper (each prefixed with [ID])\n"
             "2. A list of extracted chunks (math equations in LaTeX, or code snippets)\n\n"
             "Your job: for each chunk, find which line ID(s) contain that equation or code.\n\n"
-            "CRITICAL RULES:\n"
-            "- Math in the paper uses Unicode (θ, ∑, ∂, ∞, ≤, α, β, λ), NOT LaTeX commands\n"
-            "- \\frac{{a}}{{b}} appears as a/b or as 'a' on one line and 'b' on the next\n"
-            "- Large equations often span MULTIPLE consecutive lines — you MUST include ALL of them\n"
-            "- Include every line that is part of the equation: numerators, denominators, subscripts, "
-            "summation bounds, 'where' clauses defining variables, and condition lines\n"
-            "- If an equation has parts like 'subject to', 'where', 's.t.', or variable definitions "
-            "on the next line, include those lines too\n"
-            "- Do NOT include lines that are just prose/commentary around the equation\n"
-            "- For code: include ALL lines of the code block\n"
-            "- If you cannot find a chunk, return an empty array\n\n"
+            "IMPORTANT NOTES:\n"
+            "- Math in the paper text uses Unicode (θ, ∑, ∂, ∞, ≤) NOT LaTeX (\\theta, \\sum)\n"
+            "- Fractions like \\frac{{a}}{{b}} may appear as a/b or on separate lines\n"
+            "- An equation may span 1-3 lines. Return ALL relevant line IDs.\n"
+            "- If you cannot find a chunk, return an empty array for it.\n"
+            "- Return ONLY line IDs, not the text.\n\n"
             "Respond with ONLY a JSON object mapping chunk keys to arrays of line IDs:\n"
-            '{{"M0": [45, 46, 47], "M1": [102, 103], "C0": [200, 201, 202, 203], ...}}'
+            '{{"M0": [45], "M1": [102, 103], "C0": [200, 201, 202], ...}}'
         )),
         ("human",
          "PAPER LINES:\n{paper_lines}\n\n"
@@ -110,10 +104,12 @@ async def locate_chunks(
                 continue
 
             # Convert global IDs to (page, line_idx) pairs
+            pages = set()
             line_indices_by_page: dict[int, list[int]] = {}
             for lid in line_ids:
                 if isinstance(lid, int) and lid in line_map:
                     pi, li = line_map[lid]
+                    pages.add(pi)
                     line_indices_by_page.setdefault(pi, []).append(li)
 
             if not line_indices_by_page:
@@ -122,14 +118,6 @@ async def locate_chunks(
             # Pick the page with the most matched lines
             best_page = max(line_indices_by_page, key=lambda p: len(line_indices_by_page[p]))
             lines = sorted(line_indices_by_page[best_page])
-
-            # Post-processing: fill gaps in consecutive line ranges
-            # If LLM returned [45, 47] but missed 46, fill it in
-            if len(lines) >= 2:
-                filled = list(range(lines[0], lines[-1] + 1))
-                # Only fill if the gap is small (≤2 missing lines)
-                if len(filled) - len(lines) <= 2:
-                    lines = filled
 
             loc = {"page": best_page, "lines": lines}
 

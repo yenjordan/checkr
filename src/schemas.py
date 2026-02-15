@@ -21,27 +21,9 @@ class AgentFState(TypedDict):
 class PlannerOutput(BaseModel):
     steps: List[str]
 
-class IssueWithSeverity(BaseModel):
-    message: str
-    severity: str  # "critical" or "warning"
-
-class ChunkAnalysisLLMResponse(BaseModel):
-    """Schema for LLM response when analyzing a single chunk (no chunk_index)"""
-    is_correct: bool
-    issues: List[IssueWithSeverity]
-    explanation: str
-
-class ChunkAnalysis(BaseModel):
-    """Schema for internal storage with chunk_index added"""
-    chunk_index: int
-    is_correct: bool
-    issues: List[IssueWithSeverity]
-    explanation: str
-
 class CodingAnalysisOutput(BaseModel):
     is_conceptually_correct: bool
-    chunk_results: List[ChunkAnalysis]  # Detailed per-chunk results
-    issues: List[str]  # Only critical issues aggregated
+    issues: List[str]
     explanation: str
 
 class CodeChunk(BaseModel):
