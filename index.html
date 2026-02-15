@@ -777,6 +777,7 @@
       font-weight: 300;
       color: #555;
       line-height: 1.6;
+      white-space: pre-line;
     }
 
     .result-card code {
@@ -858,15 +859,69 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
 
-    .math-chunk-latex-wrap .katex {
-      font-size: 1.15em;
-      color: #1a1a1a;
+    .math-chunk-latex-wrap .katex { font-size: 1.05em; }
+
+    /* ── Clickable chunk cards ────────────── */
+    .result-card.clickable {
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
     }
 
-    .math-chunk-latex-wrap .katex .mord,
-    .math-chunk-latex-wrap .katex .mbin,
-    .math-chunk-latex-wrap .katex .mrel {
-      color: #1a1a1a;
+    .result-card.clickable:hover {
+      border-color: rgba(227, 120, 51, 0.4);
+      box-shadow: 0 2px 8px rgba(227, 120, 51, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .result-card.clickable:active {
+      transform: translateY(0);
+    }
+
+    .result-card-locate {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 400;
+      color: rgba(227, 120, 51, 0.7);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .result-card.clickable:hover .result-card-locate {
+      opacity: 1;
+    }
+
+    .result-card-locate svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    /* ── Chunk highlight overlay (Anthropic orange) ── */
+    .chunk-hl-wrap {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      transition: opacity 1s ease;
+    }
+
+    .chunk-hl-rect {
+      position: absolute;
+      background: rgba(227, 120, 51, 0.28);
+      border-radius: 3px;
+      pointer-events: none;
+      animation: chunkHlPulse 0.6s ease;
+    }
+
+    @keyframes chunkHlPulse {
+      0% { background: rgba(227, 120, 51, 0.5); }
+      100% { background: rgba(227, 120, 51, 0.28); }
     }
 
     /* ── Responsive results panel ─────────── */
@@ -1105,35 +1160,47 @@
       transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .analysis-pdf-inner canvas {
+    .analysis-pdf-inner .pdf-page-wrap {
+      position: relative;
       width: 100%;
-      height: auto;
-      display: block;
       border-radius: 4px;
+      overflow: hidden;
       box-shadow:
         0 1px 4px rgba(0,0,0,0.06),
         0 8px 24px rgba(0,0,0,0.08);
     }
 
-    /* ── Stanford background image ───────────── */
-    .analysis-pdf-bg {
-      position: fixed;
-      bottom: 0;
-      left: -100px;
-      pointer-events: none;
-      line-height: 0;
-      z-index: 402;
-    }
-
-    .analysis-pdf-bg img {
+    .analysis-pdf-inner .pdf-page-wrap canvas {
+      width: 100%;
       height: auto;
-      max-height: 70vh;
       display: block;
     }
 
-    .analysis-pdf-inner {
-      position: relative;
-      z-index: 403;
+    /* text layer for selection over canvas */
+    .analysis-pdf-inner .textLayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      line-height: 1;
+      text-size-adjust: none;
+      forced-color-adjust: none;
+      transform-origin: 0 0;
+      opacity: 0.3;
+      mix-blend-mode: multiply;
+    }
+
+    .analysis-pdf-inner .textLayer span {
+      position: absolute;
+      white-space: pre;
+      color: transparent;
+      transform-origin: 0% 0%;
+      cursor: text;
+    }
+
+    .analysis-pdf-inner .textLayer span::selection {
+      background: rgba(59, 130, 246, 0.4);
+      color: transparent;
     }
 
     /* ── Zoom controls ───────────────────────── */
@@ -1199,14 +1266,14 @@
       line-height: 36px;
     }
 
-    /* page canvases staggered entrance */
-    .analysis-pdf-inner canvas {
+    /* page wrappers staggered entrance */
+    .analysis-pdf-inner .pdf-page-wrap {
       opacity: 0;
       transform: translateY(20px);
       transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .analysis-pdf-inner canvas.visible {
+    .analysis-pdf-inner .pdf-page-wrap.visible {
       opacity: 1;
       transform: translateY(0);
     }
@@ -2182,10 +2249,9 @@
       }
     });
 
-    /* ── Render all PDF pages into analysis view ── */
-    async function renderFullPdf(file) {
+    /* ── Render PDF pages as canvases with text layer ── */
+    async function renderPdfPages(arrayBuffer) {
       analysisPdfInner.innerHTML = '';
-      const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const numPages = pdf.numPages;
 
@@ -2193,22 +2259,26 @@
         const page = await pdf.getPage(i);
         const scale = 2;
         const viewport = page.getViewport({ scale });
+
+        const wrap = document.createElement('div');
+        wrap.className = 'pdf-page-wrap';
+        wrap.dataset.pageNum = i;
+
+        /* canvas — visual render */
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        wrap.appendChild(canvas);
 
-        await page.render({
-          canvasContext: canvas.getContext('2d'),
-          viewport,
-        }).promise;
-
-        analysisPdfInner.appendChild(canvas);
-
-        /* stagger reveal */
-        setTimeout(() => {
-          canvas.classList.add('visible');
-        }, 200 + i * 120);
+        analysisPdfInner.appendChild(wrap);
+        setTimeout(() => wrap.classList.add('visible'), 200 + i * 120);
       }
+    }
+
+    async function renderFullPdf(file) {
+      const buffer = await file.arrayBuffer();
+      await renderPdfPages(buffer);
     }
 
     /* ── Open analysis view ───────────────────── */
@@ -2454,6 +2524,339 @@
       checkBtn.disabled = false;
     });
 
+    /* ── Chunk-to-page navigation (Document AI) ── */
+    let analysisPageTexts = [];
+    let analysisPageLayouts = [];
+    let analysisChunks = { code: [], math: [] };
+
+    /* Build text layer from Document AI line-level layout data */
+    function buildDocAITextLayer(pageLayouts) {
+      const pageWraps = analysisPdfInner.querySelectorAll('.pdf-page-wrap');
+
+      pageLayouts.forEach((lines, pageIdx) => {
+        const wrap = pageWraps[pageIdx];
+        if (!wrap) return;
+        const canvas = wrap.querySelector('canvas');
+        if (!canvas) return;
+
+        /* remove any existing text layer */
+        const existing = wrap.querySelector('.textLayer');
+        if (existing) existing.remove();
+
+        const cw = canvas.width;
+        const ch = canvas.height;
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'textLayer';
+        textDiv.style.width = cw + 'px';
+        textDiv.style.height = ch + 'px';
+
+        lines.forEach(line => {
+          const span = document.createElement('span');
+          span.textContent = line.t;
+          span.style.left = (line.x * cw) + 'px';
+          span.style.top = (line.y * ch) + 'px';
+          span.style.fontSize = (line.h * ch * 0.82) + 'px';
+          textDiv.appendChild(span);
+        });
+
+        wrap.appendChild(textDiv);
+
+        /* scale text layer to match CSS canvas display size */
+        requestAnimationFrame(() => {
+          const cssScale = wrap.getBoundingClientRect().width / cw;
+          textDiv.style.transform = `scale(${cssScale})`;
+        });
+      });
+    }
+
+    /* Find which page (0-indexed) contains the search text */
+    function findChunkPage(searchText) {
+      if (!analysisPageTexts.length || !searchText) return 0;
+      const lower = searchText.toLowerCase();
+
+      /* try individual lines of the search text as substrings */
+      const lines = lower.split('\n').map(l => l.trim()).filter(l => l.length > 5);
+      for (const line of lines) {
+        for (let i = 0; i < analysisPageTexts.length; i++) {
+          if (analysisPageTexts[i].toLowerCase().includes(line)) return i;
+        }
+      }
+
+      /* try first 60 chars as substring */
+      const snippet = lower.replace(/\s+/g, ' ').trim().slice(0, 60);
+      if (snippet.length > 10) {
+        for (let i = 0; i < analysisPageTexts.length; i++) {
+          if (analysisPageTexts[i].toLowerCase().includes(snippet)) return i;
+        }
+      }
+
+      /* word-level scoring fallback */
+      const words = lower.split(/\s+/).filter(w => w.length > 3);
+      let bestPage = 0, bestScore = 0;
+      for (let i = 0; i < analysisPageTexts.length; i++) {
+        const hay = analysisPageTexts[i].toLowerCase();
+        const score = words.filter(w => hay.includes(w)).length;
+        if (score > bestScore) { bestScore = score; bestPage = i; }
+      }
+      return bestPage;
+    }
+
+    /* Find matching lines on a page — tight, precise highlighting */
+    /* LaTeX command → Unicode character mapping */
+    const LATEX_UNICODE = {
+      alpha:'α',beta:'β',gamma:'γ',delta:'δ',epsilon:'ε',varepsilon:'ε',zeta:'ζ',
+      eta:'η',theta:'θ',vartheta:'ϑ',iota:'ι',kappa:'κ',lambda:'λ',mu:'μ',nu:'ν',
+      xi:'ξ',pi:'π',rho:'ρ',sigma:'σ',tau:'τ',upsilon:'υ',phi:'φ',varphi:'φ',
+      chi:'χ',psi:'ψ',omega:'ω',
+      Gamma:'Γ',Delta:'Δ',Theta:'Θ',Lambda:'Λ',Xi:'Ξ',Pi:'Π',Sigma:'Σ',
+      Upsilon:'Υ',Phi:'Φ',Psi:'Ψ',Omega:'Ω',
+      infty:'∞',partial:'∂',nabla:'∇',forall:'∀',exists:'∃',emptyset:'∅',
+      sum:'∑',prod:'∏',int:'∫',
+      leq:'≤',geq:'≥',neq:'≠',approx:'≈',equiv:'≡',sim:'∼',propto:'∝',
+      times:'×',cdot:'·',pm:'±',mp:'∓',circ:'∘',
+      leftarrow:'←',rightarrow:'→',Leftarrow:'⇐',Rightarrow:'⇒',
+      leftrightarrow:'↔',
+      ell:'ℓ',Re:'ℜ',Im:'ℑ',hbar:'ℏ',
+      in:'∈',notin:'∉',subset:'⊂',supset:'⊃',subseteq:'⊆',supseteq:'⊇',
+      cup:'∪',cap:'∩',
+      log:'log',exp:'exp',sin:'sin',cos:'cos',tan:'tan',ln:'ln',
+      min:'min',max:'max',sup:'sup',inf:'inf',lim:'lim',arg:'arg',det:'det',
+    };
+
+    function latexToSearchTokens(latex) {
+      /* Convert a LaTeX string to a set of tokens that should appear in Document AI text */
+      const tokens = new Set();
+
+      /* Extract \command tokens and convert to unicode */
+      const cmdRegex = /\\([a-zA-Z]+)/g;
+      let m;
+      while ((m = cmdRegex.exec(latex)) !== null) {
+        const cmd = m[1];
+        if (LATEX_UNICODE[cmd]) {
+          tokens.add(LATEX_UNICODE[cmd]);
+        }
+        /* Skip pure formatting commands */
+        const skip = new Set(['frac','sqrt','text','mathrm','mathbf','mathcal','mathbb',
+          'left','right','big','Big','bigg','Bigg','hat','bar','tilde','vec',
+          'overline','underline','begin','end','displaystyle','operatorname',
+          'quad','qquad','hspace','vspace','limits','nolimits']);
+        if (!skip.has(cmd) && !LATEX_UNICODE[cmd]) {
+          /* might be a function name like \log, \det etc — add as-is */
+          tokens.add(cmd);
+        }
+      }
+
+      /* Extract variable names, numbers, and operators from cleaned LaTeX */
+      const cleaned = latex
+        .replace(/\\[a-zA-Z]+/g, ' ')  /* remove commands */
+        .replace(/[{}^_$\\]/g, ' ')     /* remove LaTeX syntax */
+        .replace(/\s+/g, ' ').trim();
+
+      /* Single-letter variables and multi-char identifiers */
+      for (const t of cleaned.match(/[a-zA-Z]+|\d+\.?\d*/g) || []) {
+        tokens.add(t);
+      }
+
+      /* Keep = sign as a strong anchor */
+      if (latex.includes('=')) tokens.add('=');
+
+      return tokens;
+    }
+
+    function findMatchingLines(pageLines, searchText, chunkType, chunk) {
+      if (!pageLines.length || !searchText.trim()) return [];
+
+      if (chunkType === 'code') {
+        /* CODE: find an anchor line, then expand only to contiguous matches */
+        const codeLines = searchText.toLowerCase().split('\n')
+          .map(l => l.trim()).filter(l => l.length > 8);
+        if (!codeLines.length) return [];
+
+        /* find anchor: longest code line that appears in a document line */
+        const sorted = [...codeLines].sort((a, b) => b.length - a.length);
+        let anchorIdx = -1;
+        for (const cl of sorted) {
+          for (let i = 0; i < pageLines.length; i++) {
+            const dl = pageLines[i].t.toLowerCase().trim();
+            if (dl.length > 3 && (dl.includes(cl) || cl.includes(dl))) {
+              anchorIdx = i;
+              break;
+            }
+          }
+          if (anchorIdx >= 0) break;
+        }
+        if (anchorIdx < 0) return [];
+
+        /* expand contiguously — stop at first non-matching line */
+        const result = [pageLines[anchorIdx]];
+        for (let i = anchorIdx - 1; i >= Math.max(0, anchorIdx - 8); i--) {
+          const dl = pageLines[i].t.toLowerCase().trim();
+          if (codeLines.some(cl => dl.includes(cl) || cl.includes(dl))) {
+            result.unshift(pageLines[i]);
+          } else break;
+        }
+        for (let i = anchorIdx + 1; i <= Math.min(pageLines.length - 1, anchorIdx + 8); i++) {
+          const dl = pageLines[i].t.toLowerCase().trim();
+          if (codeLines.some(cl => dl.includes(cl) || cl.includes(dl))) {
+            result.push(pageLines[i]);
+          } else break;
+        }
+        return result;
+
+      } else {
+        /*
+         * MATH: Two-phase approach
+         * 1. Use context words to find the REGION (anchor line) where this equation lives
+         * 2. Convert LaTeX → Unicode tokens, find lines near the anchor that contain those tokens
+         * This works because Document AI text uses Unicode (θ, Σ, ∂) not LaTeX (\theta, \sum)
+         */
+        const context = (chunk && chunk.context) || '';
+        const latex = searchText || '';
+
+        /* Phase 1: Find anchor region using context words */
+        const contextWords = context.toLowerCase().split(/\s+/)
+          .filter(w => w.length > 3 && !['this','that','with','from','have','been','will','each',
+            'which','their','where','than','also','into','over','such','they','these','those',
+            'some','only','more','most','very','what','when','then','here','about','would','could',
+            'should','other','after','before','between','through','during','under','above','using',
+            'based','given','defined','following','paper','equation','function','model'].includes(w));
+
+        let anchorIdx = -1, anchorScore = 0;
+        if (contextWords.length) {
+          pageLines.forEach((line, idx) => {
+            const ll = line.t.toLowerCase();
+            const score = contextWords.filter(w => ll.includes(w)).length;
+            if (score > anchorScore) { anchorScore = score; anchorIdx = idx; }
+          });
+        }
+
+        /* Phase 2: Convert LaTeX to unicode tokens and find matching lines */
+        const mathTokens = latexToSearchTokens(latex);
+        if (!mathTokens.size) return [];
+
+        /* Regex to detect math-heavy lines in Document AI text */
+        const mathCharRe = /[=≤≥≠≈≡∼∝±∓×·∘←→⇐⇒↔∀∃∅∈∉⊂⊃⊆⊇∪∩∑∏∫∂∇∞ℓαβγδεζηθικλμνξπρστυφχψωΓΔΘΛΞΠΣΥΦΨΩ]/;
+
+        /* Score each line by how many math tokens it contains */
+        const scored = pageLines.map((line, idx) => {
+          const lt = line.t;
+          let score = 0;
+          for (const tok of mathTokens) {
+            if (lt.includes(tok) || lt.toLowerCase().includes(tok.toLowerCase())) score++;
+          }
+          /* Bonus for lines that look mathematical */
+          if (mathCharRe.test(lt)) score += 0.5;
+          /* Bonus for proximity to context anchor */
+          if (anchorIdx >= 0 && Math.abs(idx - anchorIdx) <= 5) score += 2;
+          if (anchorIdx >= 0 && Math.abs(idx - anchorIdx) <= 2) score += 1;
+          return { idx, score, line };
+        });
+
+        /* Find the best line */
+        scored.sort((a, b) => b.score - a.score);
+        if (scored[0].score < 2) return [];
+
+        const bestIdx = scored[0].idx;
+        const bestScore = scored[0].score;
+        const result = [pageLines[bestIdx]];
+
+        /* Expand to immediate contiguous neighbors if they also score well */
+        const expandThreshold = Math.max(2, bestScore * 0.4);
+        for (let i = bestIdx - 1; i >= Math.max(0, bestIdx - 3); i--) {
+          const ns = scored.find(s => s.idx === i);
+          if (ns && ns.score >= expandThreshold) {
+            result.unshift(pageLines[i]);
+          } else break;
+        }
+        for (let i = bestIdx + 1; i <= Math.min(pageLines.length - 1, bestIdx + 3); i++) {
+          const ns = scored.find(s => s.idx === i);
+          if (ns && ns.score >= expandThreshold) {
+            result.push(pageLines[i]);
+          } else break;
+        }
+
+        return result;
+      }
+    }
+
+    /* Draw orange highlight overlays on matching lines */
+    function highlightLinesOnPage(pageIdx, matchingLines) {
+      const wraps = analysisPdfInner.querySelectorAll('.pdf-page-wrap');
+      const wrap = wraps[pageIdx];
+      if (!wrap || !matchingLines.length) return;
+
+      /* remove previous highlights */
+      analysisPdfInner.querySelectorAll('.chunk-hl-wrap').forEach(el => el.remove());
+
+      const hlWrap = document.createElement('div');
+      hlWrap.className = 'chunk-hl-wrap';
+
+      matchingLines.forEach(line => {
+        const rect = document.createElement('div');
+        rect.className = 'chunk-hl-rect';
+        rect.style.left = (line.x * 100) + '%';
+        rect.style.top = (line.y * 100) + '%';
+        rect.style.width = (line.w * 100) + '%';
+        rect.style.height = (line.h * 100) + '%';
+        hlWrap.appendChild(rect);
+      });
+
+      wrap.appendChild(hlWrap);
+
+      /* auto-fade after 5 seconds */
+      setTimeout(() => {
+        hlWrap.style.opacity = '0';
+        setTimeout(() => hlWrap.remove(), 1000);
+      }, 5000);
+    }
+
+    /* Navigate to a chunk's location in the PDF */
+    function navigateToChunk(type, index) {
+      const chunks = analysisChunks[type];
+      if (!chunks || !chunks[index]) return;
+
+      const chunk = chunks[index];
+      let pageIdx, matchingLines;
+
+      if (chunk._loc) {
+        /* Backend-computed location: use exact page + line indices */
+        pageIdx = chunk._loc.page;
+        const pageLines = analysisPageLayouts[pageIdx] || [];
+        matchingLines = (chunk._loc.lines || [])
+          .filter(li => li >= 0 && li < pageLines.length)
+          .map(li => pageLines[li]);
+      } else {
+        /* Fallback: text-based matching */
+        const pageSearch = type === 'code' ? (chunk.code || '') : (chunk.context || '');
+        if (!pageSearch.trim()) return;
+        pageIdx = findChunkPage(pageSearch);
+
+        const lineSearch = type === 'code' ? (chunk.code || '') : (chunk.latex || '');
+        const pageLines = analysisPageLayouts[pageIdx] || [];
+        matchingLines = findMatchingLines(pageLines, lineSearch, type, chunk);
+      }
+
+      /* scroll to the matching region */
+      const wraps = analysisPdfInner.querySelectorAll('.pdf-page-wrap');
+      const target = wraps[pageIdx];
+      if (!target) return;
+
+      if (matchingLines && matchingLines.length) {
+        const firstLine = matchingLines[0];
+        const scrollTarget = target.offsetTop + (firstLine.y * target.offsetHeight) - (analysisPdf.offsetHeight / 3);
+        analysisPdf.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+      } else {
+        const scrollTarget = target.offsetTop - (analysisPdf.offsetHeight / 4);
+        analysisPdf.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+      }
+
+      /* highlight with orange overlays */
+      setTimeout(() => highlightLinesOnPage(pageIdx, matchingLines), 400);
+    }
+
+    const locateIconSvg = `<span class="result-card-locate"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>Find</span>`;
+
     /* ── Show results in analysis view ────────── */
     function showAnalysisResults(data) {
       const verdictLabel = {
@@ -2492,9 +2895,10 @@
         data.code_results.forEach((r, i) => {
           const passed = r.ran_successfully;
           html += `
-            <div class="result-card">
+            <div class="result-card clickable" data-chunk-type="code" data-chunk-idx="${i}">
               <div class="result-card-header">
                 <span class="result-card-lang">${r.language} &middot; Chunk ${i + 1}</span>
+                ${locateIconSvg}
                 <span class="result-badge ${passed ? 'pass' : 'fail'}">${passed ? 'PASSED' : 'FAILED'}</span>
               </div>
               <code>${escapeHtml(r.code?.slice(0, 300) || '')}</code>
@@ -2564,10 +2968,11 @@
           const steps = proof.steps || [];
 
           html += `
-            <div class="result-card" style="margin-bottom:10px">
+            <div class="result-card clickable" data-chunk-type="math" data-chunk-idx="${i}" style="margin-bottom:10px">
               <div class="result-card-header">
                 <span class="result-card-lang">${escapeHtml(typeLabel)} &middot; Chunk ${i + 1}</span>
                 ${statusLabel ? `<span class="result-badge ${statusClass === 'valid' ? 'pass' : statusClass === 'invalid' ? 'fail' : ''}">${statusLabel}</span>` : ''}
+                ${locateIconSvg}
               </div>
               <div class="math-chunk-latex-wrap"><span id="math-latex-${i}" class="math-chunk-latex"></span></div>
               ${chunk.context ? `<div class="result-card-analysis">${escapeHtml(chunk.context)}</div>` : ''}
@@ -2608,7 +3013,6 @@
       if (window.katex) {
         analysisResultsContent.querySelectorAll('.proof-step-detail').forEach(el => {
           let text = el.textContent;
-          /* replace $$...$$ with display math, then $...$ with inline math */
           text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
             try { return katex.renderToString(tex.trim(), { throwOnError: false, displayMode: true }); }
             catch (e) { return '$$' + tex + '$$'; }
@@ -2625,6 +3029,23 @@
         });
       }
 
+      /* store data for chunk navigation */
+      analysisPageTexts = data.page_texts || [];
+      analysisPageLayouts = data.page_layouts || [];
+      analysisChunks.code = data.code_results || [];
+      analysisChunks.math = data.math_chunks || [];
+
+      if (analysisPageLayouts.length) {
+        buildDocAITextLayer(analysisPageLayouts);
+      }
+
+      analysisResultsContent.querySelectorAll('.result-card.clickable').forEach(card => {
+        card.addEventListener('click', () => {
+          const type = card.dataset.chunkType;
+          const idx = parseInt(card.dataset.chunkIdx);
+          navigateToChunk(type, idx);
+        });
+      });
       /* trigger entrance animation */
       requestAnimationFrame(() => {
         analysisResultsContent.classList.add('visible');

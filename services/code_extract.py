@@ -40,9 +40,48 @@ def extract_pdf(pdf_path: str) -> documentai.Document:
     return result.document
 
 def parse_document(document: documentai.Document) -> dict:
+    page_texts = []
+    page_layouts = []
+
+    for page in document.pages:
+        segments = []
+        lines_data = []
+
+        # Use lines for layout data, fall back to paragraphs
+        layout_items = page.lines if page.lines else page.paragraphs
+
+        for item in layout_items:
+            for segment in item.layout.text_anchor.text_segments:
+                start = segment.start_index or 0
+                end = segment.end_index
+                if end > start:
+                    text = document.text[start:end]
+                    segments.append((start, end))
+
+                    verts = item.layout.bounding_poly.normalized_vertices
+                    if len(verts) >= 4:
+                        lines_data.append({
+                            "t": text.rstrip("\n"),
+                            "x": round(verts[0].x, 4),
+                            "y": round(verts[0].y, 4),
+                            "w": round(max(verts[1].x - verts[0].x, 0.01), 4),
+                            "h": round(max(verts[2].y - verts[0].y, 0.001), 4),
+                        })
+
+        if segments:
+            page_start = min(s[0] for s in segments)
+            page_end = max(s[1] for s in segments)
+            page_texts.append(document.text[page_start:page_end])
+        else:
+            page_texts.append("")
+
+        page_layouts.append(lines_data)
+
     return {
         "full_text": document.text,
         "pages": len(document.pages),
+        "page_texts": page_texts,
+        "page_layouts": page_layouts,
         "entities": [
             {"type": e.type_, "text": e.mention_text, "confidence": e.confidence}
             for e in document.entities

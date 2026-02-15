@@ -24,7 +24,7 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
 
     try:
         result = parse_json_response(raw, MathExtractorOutput, llm=llm)
-        chunks = [{"latex": c.latex, "context": c.context, "equation_type": c.equation_type} for c in result.chunks]
+        chunks = [{"latex": c.latex, "context": c.context, "equation_type": c.equation_type, "source_text": c.source_text} for c in result.chunks]
     except Exception:
         chunks = []
 

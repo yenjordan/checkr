@@ -21,9 +21,27 @@ class AgentFState(TypedDict):
 class PlannerOutput(BaseModel):
     steps: List[str]
 
+class IssueWithSeverity(BaseModel):
+    message: str
+    severity: str  # "critical" or "warning"
+
+class ChunkAnalysisLLMResponse(BaseModel):
+    """Schema for LLM response when analyzing a single chunk (no chunk_index)"""
+    is_correct: bool
+    issues: List[IssueWithSeverity]
+    explanation: str
+
+class ChunkAnalysis(BaseModel):
+    """Schema for internal storage with chunk_index added"""
+    chunk_index: int
+    is_correct: bool
+    issues: List[IssueWithSeverity]
+    explanation: str
+
 class CodingAnalysisOutput(BaseModel):
     is_conceptually_correct: bool
-    issues: List[str]
+    chunk_results: List[ChunkAnalysis]  # Detailed per-chunk results
+    issues: List[str]  # Only critical issues aggregated
     explanation: str
 
 class CodeChunk(BaseModel):
@@ -50,6 +68,7 @@ class MathChunk(BaseModel):
     latex: str              # The equation (LaTeX or plain text)
     context: str            # Surrounding text explaining the equation
     equation_type: str      # "definition", "theorem", "loss_function", "derivation", etc.
+    source_text: str = ""   # Exact raw text as it appears in the paper (for highlighting)
 
 class MathExtractorOutput(BaseModel):
     chunks: List[MathChunk] = []
