@@ -27,6 +27,44 @@ def _repair_leading_brace(raw: str) -> str:
     return raw
 
 
+def _escape_control_chars_in_strings(raw: str) -> str:
+    result = []
+    in_string = False
+    escape_next = False
+    i = 0
+    while i < len(raw):
+        c = raw[i]
+        if escape_next:
+            result.append(c)
+            escape_next = False
+            i += 1
+            continue
+        if c == "\\" and in_string:
+            result.append(c)
+            escape_next = True
+            i += 1
+            continue
+        if c == '"':
+            in_string = not in_string
+            result.append(c)
+            i += 1
+            continue
+        if in_string and ord(c) < 32:
+            if c == "\n":
+                result.append("\\n")
+            elif c == "\r":
+                result.append("\\r")
+            elif c == "\t":
+                result.append("\\t")
+            else:
+                result.append(f"\\u{ord(c):04x}")
+            i += 1
+            continue
+        result.append(c)
+        i += 1
+    return "".join(result)
+
+
 def parse_json_response(text: str, model: Type[T], llm: Optional[Any] = None) -> T:
     match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
     if match:
@@ -44,7 +82,15 @@ def parse_json_response(text: str, model: Type[T], llm: Optional[Any] = None) ->
     raw = re.sub(r'^\s*#.*$', '', raw, flags=re.MULTILINE)
 
     last_error = None
-    candidates = [raw, _repair_leading_brace(raw), _sanitize_json_string(raw)]
+    raw_fixed_control = _escape_control_chars_in_strings(raw)
+    candidates = [
+        raw,
+        raw_fixed_control,
+        _repair_leading_brace(raw),
+        _repair_leading_brace(raw_fixed_control),
+        _sanitize_json_string(raw),
+        _sanitize_json_string(raw_fixed_control),
+    ]
     for s in candidates:
         if not s or not s.strip():
             continue

@@ -6,6 +6,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from config import llm
 from utils import parse_json_response
 
+MIN_CODE_LEN = 50
+
 async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
     paper_text = state.get("query") or ""
     print("[CodeExtractor] input length:", len(paper_text), "chars", flush=True)
@@ -20,8 +22,11 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
             "Do not include pure pseudocode with no syntax—but DO include algorithm blocks that use Python-like syntax (def, for, if, =, etc.). "
             "When in doubt, include a chunk; it is better to extract a borderline block than to omit it.\n"
             "Include code even if it looks incomplete or references undefined variables.\n"
+            "CRITICAL: NEVER abbreviate or omit code. Always include the COMPLETE, FULL code for every chunk. "
+            "Do not write '... (omitted for brevity)', '... (rest of code)', '# ... rest omitted', or any similar placeholder—extract the entire code block only. "
+            "If the full code is not in the paper, extract only what is actually written; do not invent placeholders.\n"
             "For each chunk use only the keys: code, language, context (no extra keys). Identify the programming language and provide a brief description.\n"
-            "When you see a function definition followed by assert or test lines, extract only the function.\n\n"
+            "When you see a function definition followed by assert or test lines, extract only the function (in full).\n\n"
             "Respond with ONLY a JSON object in this exact format:\n"
             '{{"chunks": [{{"code": "...", "language": "python", "context": "description"}}, ...]}}\n'
             "If the paper truly has no code at all (no algorithms, no listings, no snippets), return: {{}}"
@@ -40,8 +45,9 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
                 chunks = [
                     {"code": str(c.code), "language": str(c.language), "context": str(c.context)}
                     for c in (result.chunks or [])
+                    if len(str(c.code).strip()) >= MIN_CODE_LEN
                 ]
-                print("[CodeExtractor] parsed", len(chunks), "chunks", flush=True)
+                print("[CodeExtractor] parsed", len(chunks), "chunks (excluding < %d chars)" % MIN_CODE_LEN, flush=True)
             except Exception as e:
                 print("[CodeExtractor] parse failed:", e, flush=True)
                 match = re.search(r'"chunks"\s*:\s*\[', raw)
@@ -56,20 +62,48 @@ async def CodeExtractorAgent(state: AgentFState) -> AgentFState:
                             depth -= 1
                             if depth == 0:
                                 arr_str = raw[start : i + 1]
-                                try:
-                                    arr = json.loads(arr_str)
-                                    for item in arr:
-                                        if isinstance(item, dict) and item.get("code"):
-                                            chunks.append({
-                                                "code": str(item.get("code", "")),
-                                                "language": str(item.get("language", "python")),
-                                                "context": str(item.get("context", "")),
-                                            })
-                                    if chunks:
-                                        print("[CodeExtractor] fallback parsed", len(chunks), "chunks", flush=True)
-                                except Exception:
-                                    pass
+                                for parse_fn in (json.loads, None):
+                                    try:
+                                        if parse_fn is None:
+                                            import json_repair
+                                            arr = json_repair.loads(arr_str)
+                                        else:
+                                            arr = parse_fn(arr_str)
+                                        for item in arr:
+                                            if isinstance(item, dict) and item.get("code"):
+                                                code = str(item.get("code", ""))
+                                                if len(code.strip()) >= MIN_CODE_LEN:
+                                                    chunks.append({
+                                                        "code": code,
+                                                        "language": str(item.get("language", "python")),
+                                                        "context": str(item.get("context", "")),
+                                                    })
+                                        if chunks:
+                                            print("[CodeExtractor] fallback parsed", len(chunks), "chunks", flush=True)
+                                        break
+                                    except Exception:
+                                        if parse_fn is None:
+                                            pass
+                                        continue
                                 break
+                if not chunks and raw.strip().startswith("{"):
+                    try:
+                        import json_repair
+                        data = json_repair.loads(raw)
+                        arr = data.get("chunks") if isinstance(data, dict) else []
+                        for item in arr or []:
+                            if isinstance(item, dict) and item.get("code"):
+                                code = str(item.get("code", ""))
+                                if len(code.strip()) >= MIN_CODE_LEN:
+                                    chunks.append({
+                                        "code": code,
+                                        "language": str(item.get("language", "python")),
+                                        "context": str(item.get("context", "")),
+                                    })
+                        if chunks:
+                            print("[CodeExtractor] json_repair fallback parsed", len(chunks), "chunks", flush=True)
+                    except Exception:
+                        pass
     except Exception as e:
         print("[CodeExtractor] failed:", e, flush=True)
         chunks = []
