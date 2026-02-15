@@ -1059,7 +1059,19 @@
       border-radius: 3px;
     }
 
+    .pdf-mascot {
+      position: fixed;
+      bottom: 0;
+      left: -30px;
+      width: 300px;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
     .analysis-pdf-inner {
+      position: relative;
+      z-index: 2;
       max-width: 680px;
       margin: 0 auto;
       display: flex;
@@ -1169,8 +1181,8 @@
       min-width: 42px;
       text-align: center;
       user-select: none;
-      border-left: 1px solid var(--faint);
-      border-right: 1px solid var(--faint);
+      border-left: none;
+      border-right: none;
       padding: 0 2px;
       line-height: 36px;
     }
@@ -1897,6 +1909,172 @@
       }
       .spark-btn { bottom: 16px; right: 16px; }
     }
+
+    /* ── How It Works Page ──────────────────── */
+    .how-it-works {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: var(--paper);
+      overflow-y: auto;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.5s;
+    }
+
+    .how-it-works.is-active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0s;
+    }
+
+    .how-it-works-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 510;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 52px;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.4s 0.2s ease, transform 0.4s 0.2s ease;
+    }
+
+    .how-it-works.is-active .how-it-works-nav {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-it-works-nav .nav-logo img {
+      height: 30px;
+      width: auto;
+      display: block;
+      opacity: 0.8;
+    }
+
+    .how-it-works-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      text-decoration: none;
+      border: none;
+      background: none;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .how-it-works-back:hover {
+      color: var(--ink);
+    }
+
+    .how-it-works-back svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .how-it-works-content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 160px 52px 100px;
+    }
+
+    .how-it-works-rule {
+      width: 48px;
+      height: 1px;
+      background: var(--faint);
+      margin-bottom: 36px;
+      opacity: 0;
+      transition: opacity 0.5s 0.15s ease;
+    }
+
+    .how-it-works.is-active .how-it-works-rule {
+      opacity: 1;
+    }
+
+    .how-it-works-heading {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(38px, 5vw, 64px);
+      line-height: 1.12;
+      letter-spacing: -1.5px;
+      margin-bottom: 40px;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s 0.2s ease, transform 0.6s 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .how-it-works.is-active .how-it-works-heading {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-it-works-heading .line-muted {
+      color: var(--muted);
+    }
+
+    .how-it-works-heading em {
+      font-style: italic;
+    }
+
+    .how-it-works-body {
+      font-size: 17px;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 600px;
+      margin-bottom: 64px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s 0.35s ease, transform 0.6s 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .how-it-works.is-active .how-it-works-body {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-it-works-img {
+      width: 100%;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s 0.45s ease, transform 0.6s 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .how-it-works.is-active .how-it-works-img {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-it-works-img img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 6px;
+      border: 1px solid var(--faint);
+    }
+
+    @media (max-width: 768px) {
+      .how-it-works-nav { padding: 24px 28px; }
+      .how-it-works-content { padding: 120px 28px 80px; }
+    }
+
+    @media (max-width: 480px) {
+      .how-it-works-nav { padding: 20px 20px; }
+      .how-it-works-content { padding: 110px 20px 60px; }
+    }
   </style>
 </head>
 <body>
@@ -1908,7 +2086,7 @@
       <img src="assets/checkr.png" alt="CHECKR">
     </div>
     <div class="nav-right">
-      <a href="#" class="nav-link">How it works</a>
+      <a href="#" class="nav-link" id="navHowItWorks">How it works</a>
       <a href="#" class="nav-link" id="navGetStarted">Get started</a>
     </div>
   </nav>
@@ -2001,6 +2179,7 @@
     </button>
 
     <div class="analysis-pdf" id="analysisPdf">
+      <img src="assets/Gemini_Generated_Image_2ltt3n2ltt3n2ltt-removebg-preview.png" class="pdf-mascot" alt="">
       <div class="analysis-pdf-inner" id="analysisPdfInner"></div>
     </div>
 
@@ -3558,6 +3737,58 @@
       div.textContent = str;
       return div.innerHTML;
     }
+  </script>
+
+  <!-- ── How It Works Page ──────────────────── -->
+  <div class="how-it-works" id="howItWorks">
+    <div class="how-it-works-nav">
+      <button class="how-it-works-back" id="howItWorksBack">
+        <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back
+      </button>
+      <a href="#" class="nav-logo" id="howItWorksHome">
+        <img src="assets/checkr.png" alt="CHECKR">
+      </a>
+    </div>
+    <div class="how-it-works-content">
+      <div class="how-it-works-rule"></div>
+      <h1 class="how-it-works-heading">
+        Research is hard,<br>
+        <span class="line-muted">but it <em>doesn't have to be.</em></span>
+      </h1>
+      <p class="how-it-works-body">
+        We built CHECKR because verifying research shouldn't require a PhD. Whether you're a researcher double-checking claims before publication, a founder building on the latest science, or a VC evaluating deep-tech investments &mdash; you deserve tools that cut through the noise and surface what actually matters.
+      </p>
+      <div class="how-it-works-img">
+        <img src="assets/arch.PNG" alt="CHECKR Architecture">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── How It Works toggle ── */
+    (function() {
+      const howPage = document.getElementById('howItWorks');
+      const howBack = document.getElementById('howItWorksBack');
+      const howHome = document.getElementById('howItWorksHome');
+      const navLink = document.getElementById('navHowItWorks');
+
+      function closeHow() {
+        howPage.classList.remove('is-active');
+      }
+
+      navLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        howPage.classList.add('is-active');
+        howPage.scrollTop = 0;
+      });
+
+      howBack.addEventListener('click', closeHow);
+      howHome.addEventListener('click', function(e) {
+        e.preventDefault();
+        closeHow();
+      });
+    })();
   </script>
 
 </body>
