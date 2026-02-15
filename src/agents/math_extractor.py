@@ -64,11 +64,16 @@ async def MathExtractorAgent(state: AgentFState) -> AgentFState:
                             arr = json.loads(arr_str)
                             for item in arr:
                                 if isinstance(item, dict) and item.get("latex"):
+                                    st = item.get("source_text", "")
+                                    if isinstance(st, list):
+                                        st = " ".join(str(x) for x in st)
+                                    else:
+                                        st = str(st) if st else ""
                                     chunks.append({
                                         "latex": str(item.get("latex", "")),
                                         "context": str(item.get("context", "")),
                                         "equation_type": str(item.get("equation_type", "equation")),
-                                        "source_text": str(item.get("source_text", "")),
+                                        "source_text": st,
                                     })
                             if chunks:
                                 print("[MathExtractor] fallback parsed", len(chunks), "chunks", flush=True)

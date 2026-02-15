@@ -47,7 +47,6 @@ def parse_document(document: documentai.Document) -> dict:
         segments = []
         lines_data = []
 
-        # Use lines for layout data, fall back to paragraphs
         layout_items = page.lines if page.lines else page.paragraphs
 
         for item in layout_items:

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 import random
@@ -155,6 +156,27 @@ def _detect_potential_symbols(expr_str: str) -> list[str]:
     return list(candidates - exclude)
 
 
+def _unwrap_sum_single_arg(expr_str: str) -> str | None:
+    i = expr_str.find("Sum(")
+    if i == -1:
+        return None
+    start = i + 4
+    depth = 1
+    for j in range(start, len(expr_str)):
+        c = expr_str[j]
+        if c == "(":
+            depth += 1
+        elif c == ",":
+            if depth == 1:
+                return None
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                inner = expr_str[start:j]
+                return expr_str[:i] + "(" + inner + ")" + expr_str[j + 1:]
+    return None
+
+
 def _safe_parse(expr_str: str, local_syms: dict | None = None) -> sp.Basic:
     expr_str = _sanitize_expr(expr_str)
     d = dict(KNOWN_FUNCS)
@@ -165,7 +187,14 @@ def _safe_parse(expr_str: str, local_syms: dict | None = None) -> sp.Basic:
             d[sym_name] = sp.Symbol(sym_name)
     for fname in _detect_unknown_funcs(expr_str, list(d.keys())):
         d[fname] = sp.Function(fname)
-    out = parse_expr(expr_str, local_dict=d, transformations=PARSE_TRANSFORMS)
+    try:
+        out = parse_expr(expr_str, local_dict=d, transformations=PARSE_TRANSFORMS)
+    except Exception as e:
+        if "dummy variables" in str(e):
+            unwrapped = _unwrap_sum_single_arg(expr_str)
+            if unwrapped and unwrapped != expr_str:
+                return _safe_parse(unwrapped, local_syms)
+        raise
     if isinstance(out, tuple) and len(out) >= 1 and isinstance(out[0], sp.Basic):
         return out[0]
     if not isinstance(out, sp.Basic):
@@ -391,47 +420,51 @@ async def _translate_chunk(latex: str, context: str, eq_type: str) -> tuple[dict
     return (None, err)
 
 
+async def _process_one_chunk(i: int, c: dict) -> dict:
+    """Process a single math chunk (translate + prove). Used for parallel execution."""
+    parsed, err = await _translate_chunk(
+        c.get("latex", ""), c.get("context", ""), c.get("equation_type", "equation")
+    )
+    if parsed is None:
+        return {
+            "latex": c.get("latex"), "context": c.get("context"), "equation_type": c.get("equation_type"),
+            "sympy_translation": None, "proof": {"proved": None, "steps": [], "conclusion": err or "Translate failed"},
+            "status": "error", "error": err,
+        }
+    try:
+        proof = generate_proof(parsed)
+        status = "verified" if proof["proved"] is True else "failed" if proof["proved"] is False else "inconclusive"
+        return {
+            "latex": c.get("latex"), "context": c.get("context"), "equation_type": c.get("equation_type"),
+            "sympy_translation": parsed, "proof": proof, "status": status,
+        }
+    except Exception as e:
+        return {
+            "latex": c.get("latex"), "context": c.get("context"), "equation_type": c.get("equation_type"),
+            "sympy_translation": parsed, "proof": {"proved": None, "steps": [{"step": "Error", "detail": str(e)}], "conclusion": str(e)},
+            "status": "error", "error": str(e),
+        }
+
+
 async def SympyVerifyAgent(state: AgentFState) -> AgentFState:
     chunks = state.get("subagent_responses", {}).get("math_extractor", {}).get("chunks", [])
     if not chunks:
         return {"subagent_responses": {"sympy_verify": {"ran_successfully": True, "chunk_results": [], "summary": "No math chunks."}}}
 
     max_chunks = 20
-    n = min(len(chunks), max_chunks)
-    print(f"[SymPy verify] {n} chunk(s)...", flush=True)
-    results = []
+    to_process = chunks[:max_chunks]
+    n = len(to_process)
 
-    for i, c in enumerate(chunks[:max_chunks]):
-        parsed, err = await _translate_chunk(c.get("latex", ""), c.get("context", ""), c.get("equation_type", "equation"))
-        if parsed is None:
-            results.append({
-                "latex": c.get("latex"), "context": c.get("context"), "equation_type": c.get("equation_type"),
-                "sympy_translation": None, "proof": {"proved": None, "steps": [], "conclusion": err or "Translate failed"},
-                "status": "error", "error": err,
-            })
-            print(f"  chunk {i+1}: ERROR", flush=True)
-            continue
-        try:
-            proof = generate_proof(parsed)
-            status = "verified" if proof["proved"] is True else "failed" if proof["proved"] is False else "inconclusive"
-            results.append({
-                "latex": c.get("latex"), "context": c.get("context"), "equation_type": c.get("equation_type"),
-                "sympy_translation": parsed, "proof": proof, "status": status,
-            })
-            print(f"  chunk {i+1}: {status}", flush=True)
-        except Exception as e:
-            results.append({
-                "latex": c.get("latex"), "context": c.get("context"), "equation_type": c.get("equation_type"),
-                "sympy_translation": parsed, "proof": {"proved": None, "steps": [{"step": "Error", "detail": str(e)}], "conclusion": str(e)},
-                "status": "error", "error": str(e),
-            })
-            print(f"  chunk {i+1}: ERROR", flush=True)
+    results = await asyncio.gather(
+        *[_process_one_chunk(i, c) for i, c in enumerate(to_process)]
+    )
+    results = list(results)
 
     v = sum(1 for r in results if r["status"] == "verified")
     f = sum(1 for r in results if r["status"] == "failed")
     o = n - v - f
     summary = f"{v}/{n} proved, {f} failed, {o} inconclusive"
-    print(f"[SymPy verify] {summary}", flush=True)
+
     return {"subagent_responses": {"sympy_verify": {
         "ran_successfully": f == 0 and o == 0,
         "chunk_results": results,

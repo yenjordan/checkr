@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional, TypedDict, List
 from typing_extensions import Annotated
 from langgraph.graph.message import add_messages
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 def reduce_subagent_responses(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
     """Merge two subagent_responses dictionaries"""
@@ -51,6 +51,13 @@ class MathChunk(BaseModel):
     context: str            # Surrounding text explaining the equation
     equation_type: str      # "definition", "theorem", "loss_function", "derivation", etc.
     source_text: str = ""   # Exact raw text as it appears in the paper (for highlighting)
+
+    @field_validator("source_text", mode="before")
+    @classmethod
+    def source_text_str(cls, v):
+        if isinstance(v, list):
+            return " ".join(str(x) for x in v)
+        return v if isinstance(v, str) else ""
 
 class MathExtractorOutput(BaseModel):
     chunks: List[MathChunk] = []
