@@ -1,26 +1,57 @@
 from typing import Optional
+import os
+import json
+
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from langchain_core.runnables import RunnableConfig
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_google_vertexai import ChatVertexAI
+from google.oauth2 import service_account
 
 load_dotenv(dotenv_path=".env")
 
+
+def _get_vertex_credentials():
+    """Build Vertex AI credentials from the service account JSON env var."""
+    sa_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "")
+    if sa_json:
+        return service_account.Credentials.from_service_account_info(
+            json.loads(sa_json)
+        )
+    return None
+
+
+_vertex_creds = _get_vertex_credentials()
+_vertex_project = os.environ.get("GOOGLE_CLOUD_PROJECT_ID", "")
+_vertex_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
+
+
 class Settings(BaseSettings):
-    #TODO: update kb name
     kb_id: str = ""
-    llm_model: str = "nvidia/llama-3.3-nemotron-super-49b-v1"
-    llm_reasoning_model: str = "nvidia/llama-3.1-nemotron-ultra-253b-v1"
+    llm_model: str = "gemini-2.0-flash"
+    llm_reasoning_model: str = "gemini-2.5-pro"
 
 settings = Settings()
 
-# Super 49B — fast, used for planner, extractors, coding agent
-llm = ChatNVIDIA(model=settings.llm_model)
+# Gemini 2.0 Flash — fast, used for planner, extractors, coding agent
+llm = ChatVertexAI(
+    model=settings.llm_model,
+    project=_vertex_project,
+    location=_vertex_location,
+    credentials=_vertex_creds,
+    max_output_tokens=4096,
+)
 
-# Ultra 253B — reasoning-heavy, used for math agent & replanner
-llm_reasoning = ChatNVIDIA(model=settings.llm_reasoning_model)
+# Gemini 2.5 Pro — reasoning-heavy, used for math agent & replanner
+llm_reasoning = ChatVertexAI(
+    model=settings.llm_reasoning_model,
+    project=_vertex_project,
+    location=_vertex_location,
+    credentials=_vertex_creds,
+    max_output_tokens=8192,
+)
 
 class PaperCheckerConfig(BaseModel):
     """base config for paper checker agent lolz we can change name later"""

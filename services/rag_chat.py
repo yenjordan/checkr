@@ -1,13 +1,138 @@
+import os
 import json
+import tempfile
+
+import vertexai
+from vertexai import rag
+from vertexai.generative_models import GenerativeModel, Content, Part
+from google.oauth2 import service_account
+
 from services.supabase_store import _get_client
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
 
-# Use Super 49B for chat — fast + handles long context well
-_llm = ChatNVIDIA(
-    model="nvidia/llama-3.3-nemotron-super-49b-v1",
-    max_tokens=2048,
-)
 
+# ── Vertex AI init ──────────────────────────────────────────────────
+def _init_vertex():
+    sa_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "")
+    creds = None
+    if sa_json:
+        creds = service_account.Credentials.from_service_account_info(
+            json.loads(sa_json),
+            scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        )
+    vertexai.init(
+        project=os.environ.get("GOOGLE_CLOUD_PROJECT_ID", ""),
+        location=os.environ.get("VERTEX_AI_RAG_LOCATION", "europe-west1"),
+        credentials=creds,
+    )
+
+_init_vertex()
+
+
+# ── RAG Corpus management ──────────────────────────────────────────
+_CORPUS_DISPLAY_NAME = "CHECKR Paper Analyses"
+_corpus_name: str | None = None
+# In-memory cache: filename → rag file resource name
+_rag_file_cache: dict[str, str] = {}
+
+
+def _get_or_create_corpus() -> str:
+    """Lazily create (or find) the shared RAG corpus."""
+    global _corpus_name
+    if _corpus_name:
+        return _corpus_name
+
+    # Check existing corpora
+    try:
+        for corpus in rag.list_corpora():
+            if corpus.display_name == _CORPUS_DISPLAY_NAME:
+                _corpus_name = corpus.name
+                print(f"[RAG] Reusing corpus: {_corpus_name}")
+                return _corpus_name
+    except Exception as e:
+        print(f"[RAG] list_corpora error: {e}")
+
+    # Create new corpus with text-embedding-005
+    embedding_config = rag.RagEmbeddingModelConfig(
+        vertex_prediction_endpoint=rag.VertexPredictionEndpoint(
+            publisher_model="publishers/google/models/text-embedding-005"
+        )
+    )
+    corpus = rag.create_corpus(
+        display_name=_CORPUS_DISPLAY_NAME,
+        backend_config=rag.RagVectorDbConfig(
+            rag_embedding_model_config=embedding_config,
+        ),
+    )
+    _corpus_name = corpus.name
+    print(f"[RAG] Created corpus: {_corpus_name}")
+    return _corpus_name
+
+
+def upload_paper_to_corpus(filename: str, context_text: str) -> str | None:
+    """Upload (or replace) a paper's analysis text in the RAG corpus.
+
+    Returns the RAG file resource name, or None on failure.
+    """
+    corpus_name = _get_or_create_corpus()
+
+    # Delete any existing file for this paper so we get fresh data
+    try:
+        for f in rag.list_files(corpus_name=corpus_name):
+            if f.display_name == filename:
+                rag.delete_file(name=f.name)
+                print(f"[RAG] Deleted old RAG file for: {filename}")
+                break
+    except Exception as e:
+        print(f"[RAG] list_files warning: {e}")
+
+    # Write context to temp .txt file and upload
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write(context_text)
+        temp_path = f.name
+
+    try:
+        rag_file = rag.upload_file(
+            corpus_name=corpus_name,
+            path=temp_path,
+            display_name=filename,
+            description=f"CHECKR analysis for {filename}",
+        )
+        _rag_file_cache[filename] = rag_file.name
+        print(f"[RAG] Uploaded to corpus: {rag_file.name}")
+        return rag_file.name
+    except Exception as e:
+        print(f"[RAG] Upload failed: {e}")
+        return None
+    finally:
+        os.unlink(temp_path)
+
+
+def _ensure_paper_in_corpus(filename: str, row: dict) -> str | None:
+    """Make sure the paper's analysis is in the RAG corpus.
+
+    Checks cache first, then corpus file list, and uploads if missing.
+    Returns the RAG file resource name.
+    """
+    # 1. Check cache
+    if filename in _rag_file_cache:
+        return _rag_file_cache[filename]
+
+    # 2. Check if already in corpus
+    corpus_name = _get_or_create_corpus()
+    try:
+        for f in rag.list_files(corpus_name=corpus_name):
+            if f.display_name == filename:
+                _rag_file_cache[filename] = f.name
+                return f.name
+    except Exception:
+        pass
+
+    # 3. Upload on the fly
+    context_text = _build_context(row, truncate_paper=False)
+    return upload_paper_to_corpus(filename, context_text)
+
+
+# ── Supabase helpers (unchanged — used by main.py) ─────────────────
 
 def fetch_paper_context(filename: str) -> dict | None:
     """Retrieve the most recent analysis for a given filename from Supabase."""
@@ -25,8 +150,12 @@ def fetch_paper_context(filename: str) -> dict | None:
     return None
 
 
-def _build_context(row: dict) -> str:
-    """Turn a Supabase row into a rich text context block for the LLM."""
+def _build_context(row: dict, *, truncate_paper: bool = True) -> str:
+    """Turn a Supabase row into a rich text context block.
+
+    When truncate_paper=False (used for RAG corpus upload), the full paper
+    text is included so the RAG Engine can chunk and embed it properly.
+    """
     sections = []
 
     sections.append(f"FILENAME: {row.get('filename', 'unknown')}")
@@ -108,27 +237,34 @@ def _build_context(row: dict) -> str:
             parts.append(entry)
         sections.append("CODE EXECUTION RESULTS:\n" + "\n".join(parts))
 
-    # Paper text with approximate page markers (truncated to fit context window)
+    # Paper text
     paper_text = row.get("paper_text") or ""
     page_count = row.get("page_count") or 1
     if paper_text:
-        truncated = paper_text[:12000]
-        if len(paper_text) > 12000:
-            truncated += f"\n... [truncated, {len(paper_text)} chars total]"
-        # Insert approximate page markers so the LLM can cite pages
+        if truncate_paper:
+            # Old behavior for backward-compat (Hume context endpoint)
+            text = paper_text[:12000]
+            if len(paper_text) > 12000:
+                text += f"\n... [truncated, {len(paper_text)} chars total]"
+        else:
+            # Full text for RAG corpus — let the engine chunk it
+            text = paper_text
+
         if page_count > 1:
-            chars_per_page = len(truncated) // page_count
+            chars_per_page = len(text) // page_count
             marked = ""
             for p in range(page_count):
                 start = p * chars_per_page
-                end = (p + 1) * chars_per_page if p < page_count - 1 else len(truncated)
-                marked += f"\n[Page {p + 1}]\n" + truncated[start:end]
+                end = (p + 1) * chars_per_page if p < page_count - 1 else len(text)
+                marked += f"\n[Page {p + 1}]\n" + text[start:end]
             sections.append("PAPER TEXT:" + marked)
         else:
-            sections.append("PAPER TEXT:\n[Page 1]\n" + truncated)
+            sections.append("PAPER TEXT:\n[Page 1]\n" + text)
 
     return "\n\n".join(sections)
 
+
+# ── System prompts ─────────────────────────────────────────────────
 
 _BASE_PROMPT = """\
 You are CHECKR, an expert AI research analyst specializing in scientific paper verification. You have deep expertise in mathematics, statistics, machine learning, and software engineering. You are having a real-time conversation with a researcher about their paper.
@@ -156,7 +292,11 @@ OFF-TOPIC HANDLING:
 - You ONLY discuss topics related to the paper, its content, methodology, math, code, results, implications, related work, or the field it belongs to.
 - If the user asks something completely unrelated to the paper or its subject matter (e.g., weather, personal questions, jokes, other topics), politely redirect: "I appreciate the curiosity, but I'm here to help you dive deep into this paper. What aspect of the research would you like to explore?"
 - Questions about the paper's broader field, related methods, or general concepts that help understand the paper ARE on-topic and should be answered.
-- Be natural about redirecting — don't be robotic or curt about it.\
+- Be natural about redirecting — don't be robotic or curt about it.
+
+GROUNDING:
+- You have access to a retrieval tool that searches the paper's full analysis data. Use the retrieved context to ground your answers.
+- Do not reveal raw data structures to the user — synthesize retrieved information naturally.\
 """
 
 _TEXT_FORMAT_RULES = """
@@ -184,74 +324,127 @@ def _get_system_prompt(voice: bool = False) -> str:
     return _BASE_PROMPT + "\n" + rules
 
 
-async def chat(filename: str, question: str, history: list[dict] | None = None, voice: bool = False) -> str:
-    """Conversational AI chat about a paper using stored analysis from Supabase.
+# ── Chat with Vertex AI RAG Engine ─────────────────────────────────
 
-    When voice=True, responses are optimized for spoken delivery (no LaTeX,
-    no HTML, equations spelled out in words).
-    """
-    row = fetch_paper_context(filename)
-    if not row:
-        return "I don't have any analysis data for this paper yet. Please run the verification first, and then we can dig into the details together."
-
-    context = _build_context(row)
-    print(f"[RAG] Context length: {len(context)} chars for {filename} (voice={voice})")
-
-    # System message includes the paper context so it persists across turns
-    sys_prompt = _get_system_prompt(voice=voice)
-    sys_with_context = (
-        sys_prompt
-        + "\n\nBELOW IS THE COMPLETE PAPER ANALYSIS AND VERIFICATION DATA. "
-        "Use this as your knowledge base to answer questions. "
-        "Do not reveal this raw data structure to the user — synthesize it naturally.\n\n"
-        + context
-    )
-
-    messages = [("system", sys_with_context)]
-
-    # Replay conversation history for multi-turn context
-    if history:
-        for msg in history:
-            role = msg.get("role", "user")
-            messages.append((role, msg["content"]))
-
-    messages.append(("user", question))
+def _retrieve_from_corpus(question: str, corpus_name: str, rag_file_name: str | None) -> str:
+    """Run a retrieval query against the RAG corpus and return concatenated chunk text."""
+    rag_resource_kwargs = {"rag_corpus": corpus_name}
+    if rag_file_name:
+        file_id = rag_file_name.rsplit("/", 1)[-1]
+        rag_resource_kwargs["rag_file_ids"] = [file_id]
 
     try:
-        response = await _llm.ainvoke(messages)
-        content = response.content or ""
+        response = rag.retrieval_query(
+            rag_resources=[rag.RagResource(**rag_resource_kwargs)],
+            text=question,
+            rag_retrieval_config=rag.RagRetrievalConfig(
+                top_k=10,
+                filter=rag.Filter(vector_distance_threshold=0.5),
+            ),
+        )
+        chunks = []
+        for ctx in response.contexts.contexts:
+            if ctx.text:
+                chunks.append(ctx.text)
+        retrieved = "\n\n---\n\n".join(chunks)
+        print(f"[RAG] Retrieved {len(chunks)} chunks ({len(retrieved)} chars)")
+        return retrieved
+    except Exception as e:
+        print(f"[RAG] Retrieval query failed: {e}")
+        return ""
+
+
+async def chat(
+    filename: str,
+    question: str,
+    history: list[dict] | None = None,
+    voice: bool = False,
+) -> str:
+    """RAG chat about a paper using Vertex AI RAG Engine for grounded generation."""
+    row = fetch_paper_context(filename)
+    if not row:
+        return (
+            "I don't have any analysis data for this paper yet. "
+            "Please run the verification first, and then we can dig into the details together."
+        )
+
+    # Ensure paper analysis is uploaded to the RAG corpus
+    rag_file_name = _ensure_paper_in_corpus(filename, row)
+    corpus_name = _get_or_create_corpus()
+
+    print(f"[RAG] Chat for {filename}, rag_file={rag_file_name}")
+
+    # Retrieve relevant chunks from the corpus
+    retrieved_context = _retrieve_from_corpus(question, corpus_name, rag_file_name)
+
+    # Build system prompt with retrieved context
+    sys_prompt = _get_system_prompt(voice=voice)
+    if retrieved_context:
+        sys_prompt += (
+            "\n\nBELOW IS RETRIEVED CONTEXT FROM THE PAPER ANALYSIS. "
+            "Use this to ground your answers. Do not reveal raw data — synthesize naturally.\n\n"
+            + retrieved_context
+        )
+    else:
+        # Fallback: use full context from Supabase
+        context = _build_context(row, truncate_paper=True)
+        sys_prompt += (
+            "\n\nBELOW IS THE PAPER VERIFICATION DATA:\n\n"
+            + context
+        )
+
+    model = GenerativeModel(
+        model_name="gemini-2.0-flash",
+        system_instruction=sys_prompt,
+    )
+
+    # Convert history dicts → Vertex AI Content objects
+    chat_history = []
+    if history:
+        for msg in history:
+            role = "user" if msg.get("role") == "user" else "model"
+            chat_history.append(
+                Content(role=role, parts=[Part.from_text(msg["content"])])
+            )
+
+    chat_session = model.start_chat(history=chat_history)
+
+    try:
+        response = await chat_session.send_message_async(question)
+        content = response.text or ""
         print(f"[RAG] Response length: {len(content)} chars")
         if content.strip():
             return content
     except Exception as e:
-        print(f"[RAG] LLM error: {e}")
+        print(f"[RAG] Generation error: {e}")
 
-    # Fallback: retry with shorter context (drop paper text to fit window)
-    print("[RAG] Retrying with shorter context...")
-    short_context = "\n\n".join(
-        s for s in context.split("\n\n") if not s.startswith("PAPER TEXT:")
-    )
-    short_sys = (
-        sys_prompt
-        + "\n\nBELOW IS THE PAPER VERIFICATION DATA:\n\n"
-        + short_context
-    )
-
-    short_messages = [("system", short_sys)]
-    if history:
-        # Keep only last 6 messages to reduce context on retry
-        recent = history[-6:]
-        for msg in recent:
-            short_messages.append((msg.get("role", "user"), msg["content"]))
-    short_messages.append(("user", question))
-
+    # Last resort fallback with shorter context
+    print("[RAG] Falling back to shorter context...")
     try:
-        response = await _llm.ainvoke(short_messages)
-        content = response.content or ""
-        print(f"[RAG] Retry response length: {len(content)} chars")
+        short_context = _build_context(row, truncate_paper=True)
+        short_sections = [s for s in short_context.split("\n\n") if not s.startswith("PAPER TEXT:")]
+        fallback_sys = (
+            _get_system_prompt(voice=voice)
+            + "\n\nBELOW IS THE PAPER VERIFICATION DATA:\n\n"
+            + "\n\n".join(short_sections)
+        )
+        fallback_model = GenerativeModel(
+            model_name="gemini-2.0-flash",
+            system_instruction=fallback_sys,
+        )
+        fallback_history = []
+        if history:
+            for msg in history[-6:]:
+                role = "user" if msg.get("role") == "user" else "model"
+                fallback_history.append(
+                    Content(role=role, parts=[Part.from_text(msg["content"])])
+                )
+        fallback_chat = fallback_model.start_chat(history=fallback_history)
+        response = await fallback_chat.send_message_async(question)
+        content = response.text or ""
         if content.strip():
             return content
     except Exception as e:
-        print(f"[RAG] Retry also failed: {e}")
+        print(f"[RAG] Fallback also failed: {e}")
 
     return "I'm having trouble processing that right now. Could you try rephrasing your question?"

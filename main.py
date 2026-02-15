@@ -19,7 +19,7 @@ load_dotenv()
 from graph import workflow, MAX_RETRIES
 from services.code_extract import extract_pdf, parse_document
 from services.supabase_store import save_analysis
-from services.rag_chat import chat as rag_chat, fetch_paper_context
+from services.rag_chat import chat as rag_chat, fetch_paper_context, upload_paper_to_corpus, _build_context
 from agents.chunk_locator import locate_chunks
 from pydantic import BaseModel
 
@@ -48,7 +48,7 @@ def _make_json_serializable(obj):
 
 
 @app.post("/api/check")
-async def check_paper(file: UploadFile = File(...)):
+async def check_paper(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
     """Accept a PDF, run OCR, feed into the agent workflow, return results."""
 
     # Save uploaded file to temp location
@@ -114,7 +114,7 @@ async def check_paper(file: UploadFile = File(...)):
                 enriched["lean_error"] = None
             enriched_math_chunks.append(enriched)
 
-        # Step 4: Save to Supabase 
+        # Step 4: Save to Supabase
         try:
             save_analysis(
                 filename=file.filename,
@@ -125,6 +125,19 @@ async def check_paper(file: UploadFile = File(...)):
             )
         except Exception as store_err:
             print(f"[Supabase] Failed to save analysis: {store_err}")
+
+        # Step 4b: Upload to Vertex AI RAG corpus in background (non-blocking)
+        def _bg_rag_upload(fname):
+            try:
+                r = fetch_paper_context(fname)
+                if r:
+                    ctx = _build_context(r, truncate_paper=False)
+                    upload_paper_to_corpus(fname, ctx)
+            except Exception as rag_err:
+                print(f"[RAG] Failed to upload to corpus: {rag_err}")
+
+        if background_tasks:
+            background_tasks.add_task(_bg_rag_upload, file.filename)
 
         # Step 5: Build response
         structured = result.get("structured_response", {})

@@ -1,0 +1,245 @@
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/docstring_parser-0.17.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/distro-1.9.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/docstring_parser-0.17.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/distro-1.9.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+Collecting langchain-google-vertexai
+  Downloading langchain_google_vertexai-3.2.2-py3-none-any.whl.metadata (4.0 kB)
+Collecting bottleneck<2.0.0,>=1.4.0 (from langchain-google-vertexai)
+  Downloading bottleneck-1.6.0-cp312-cp312-macosx_11_0_arm64.whl.metadata (8.2 kB)
+Collecting google-cloud-aiplatform<2.0.0,>=1.97.0 (from langchain-google-vertexai)
+  Downloading google_cloud_aiplatform-1.137.0-py2.py3-none-any.whl.metadata (46 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.9/46.9 kB 4.2 MB/s eta 0:00:00
+Collecting google-cloud-storage<4.0.0,>=2.18.0 (from langchain-google-vertexai)
+  Downloading google_cloud_storage-3.9.0-py3-none-any.whl.metadata (15 kB)
+Collecting google-cloud-vectorsearch>=0.2.0 (from langchain-google-vertexai)
+  Downloading google_cloud_vectorsearch-0.4.0-py3-none-any.whl.metadata (10 kB)
+Collecting httpx-sse<1.0.0,>=0.4.0 (from langchain-google-vertexai)
+  Downloading httpx_sse-0.4.3-py3-none-any.whl.metadata (9.7 kB)
+Requirement already satisfied: httpx<1.0.0,>=0.28.0 in ./.venv/lib/python3.12/site-packages (from langchain-google-vertexai) (0.28.1)
+Requirement already satisfied: langchain-core<2.0.0,>=1.2.7 in ./.venv/lib/python3.12/site-packages (from langchain-google-vertexai) (1.2.12)
+Collecting langchain-tests>=1.0.1 (from langchain-google-vertexai)
+  Downloading langchain_tests-1.1.4-py3-none-any.whl.metadata (5.4 kB)
+Collecting numexpr<3.0.0,>=2.8.6 (from langchain-google-vertexai)
+  Downloading numexpr-2.14.1-cp312-cp312-macosx_11_0_arm64.whl.metadata (9.0 kB)
+Collecting pyarrow<23.0.0,>=19.0.1 (from langchain-google-vertexai)
+  Downloading pyarrow-22.0.0-cp312-cp312-macosx_12_0_arm64.whl.metadata (3.2 kB)
+Requirement already satisfied: pydantic<3.0.0,>=2.9.0 in ./.venv/lib/python3.12/site-packages (from langchain-google-vertexai) (2.12.5)
+Collecting validators<1.0.0,>=0.22.0 (from langchain-google-vertexai)
+  Downloading validators-0.35.0-py3-none-any.whl.metadata (3.9 kB)
+Collecting numpy (from bottleneck<2.0.0,>=1.4.0->langchain-google-vertexai)
+  Downloading numpy-2.4.2-cp312-cp312-macosx_14_0_arm64.whl.metadata (6.6 kB)
+Requirement already satisfied: google-api-core!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,<3.0.0,>=1.34.1 in ./.venv/lib/python3.12/site-packages (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,<3.0.0,>=1.34.1->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (2.29.0)
+Requirement already satisfied: google-auth<3.0.0,>=2.47.0 in ./.venv/lib/python3.12/site-packages (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (2.48.0)
+Requirement already satisfied: proto-plus<2.0.0,>=1.22.3 in ./.venv/lib/python3.12/site-packages (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (1.27.1)
+Requirement already satisfied: protobuf!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<7.0.0,>=3.20.2 in ./.venv/lib/python3.12/site-packages (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (6.33.5)
+Requirement already satisfied: packaging>=14.3 in ./.venv/lib/python3.12/site-packages (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (26.0)
+Collecting google-cloud-bigquery!=3.20.0,<4.0.0,>=1.15.0 (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai)
+  Downloading google_cloud_bigquery-3.40.1-py3-none-any.whl.metadata (8.2 kB)
+Collecting google-cloud-resource-manager<3.0.0,>=1.3.3 (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai)
+  Downloading google_cloud_resource_manager-1.16.0-py3-none-any.whl.metadata (9.9 kB)
+Collecting google-genai<2.0.0,>=1.59.0 (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai)
+  Downloading google_genai-1.63.0-py3-none-any.whl.metadata (53 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 53.1/53.1 kB 3.0 MB/s eta 0:00:00
+Requirement already satisfied: typing_extensions in ./.venv/lib/python3.12/site-packages (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (4.15.0)
+Collecting docstring_parser<1 (from google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai)
+  Using cached docstring_parser-0.17.0-py3-none-any.whl.metadata (3.5 kB)
+Collecting google-cloud-core<3.0.0,>=2.4.2 (from google-cloud-storage<4.0.0,>=2.18.0->langchain-google-vertexai)
+  Downloading google_cloud_core-2.5.0-py3-none-any.whl.metadata (3.1 kB)
+Collecting google-resumable-media<3.0.0,>=2.7.2 (from google-cloud-storage<4.0.0,>=2.18.0->langchain-google-vertexai)
+  Downloading google_resumable_media-2.8.0-py3-none-any.whl.metadata (2.6 kB)
+Requirement already satisfied: requests<3.0.0,>=2.22.0 in ./.venv/lib/python3.12/site-packages (from google-cloud-storage<4.0.0,>=2.18.0->langchain-google-vertexai) (2.32.5)
+Collecting google-crc32c<2.0.0,>=1.1.3 (from google-cloud-storage<4.0.0,>=2.18.0->langchain-google-vertexai)
+  Downloading google_crc32c-1.8.0-cp312-cp312-macosx_12_0_arm64.whl.metadata (1.7 kB)
+Requirement already satisfied: grpcio<2.0.0,>=1.33.2 in ./.venv/lib/python3.12/site-packages (from google-cloud-vectorsearch>=0.2.0->langchain-google-vertexai) (1.78.0)
+Requirement already satisfied: anyio in ./.venv/lib/python3.12/site-packages (from httpx<1.0.0,>=0.28.0->langchain-google-vertexai) (4.12.1)
+Requirement already satisfied: certifi in ./.venv/lib/python3.12/site-packages (from httpx<1.0.0,>=0.28.0->langchain-google-vertexai) (2026.1.4)
+Requirement already satisfied: httpcore==1.* in ./.venv/lib/python3.12/site-packages (from httpx<1.0.0,>=0.28.0->langchain-google-vertexai) (1.0.9)
+Requirement already satisfied: idna in ./.venv/lib/python3.12/site-packages (from httpx<1.0.0,>=0.28.0->langchain-google-vertexai) (3.11)
+Requirement already satisfied: h11>=0.16 in ./.venv/lib/python3.12/site-packages (from httpcore==1.*->httpx<1.0.0,>=0.28.0->langchain-google-vertexai) (0.16.0)
+Requirement already satisfied: jsonpatch<2.0.0,>=1.33.0 in ./.venv/lib/python3.12/site-packages (from langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (1.33)
+Requirement already satisfied: langsmith<1.0.0,>=0.3.45 in ./.venv/lib/python3.12/site-packages (from langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (0.7.3)
+Requirement already satisfied: pyyaml<7.0.0,>=5.3.0 in ./.venv/lib/python3.12/site-packages (from langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (6.0.3)
+Requirement already satisfied: tenacity!=8.4.0,<10.0.0,>=8.1.0 in ./.venv/lib/python3.12/site-packages (from langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (9.1.4)
+Requirement already satisfied: uuid-utils<1.0,>=0.12.0 in ./.venv/lib/python3.12/site-packages (from langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (0.14.0)
+Collecting pytest-asyncio<2.0.0,>=0.20.0 (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading pytest_asyncio-1.3.0-py3-none-any.whl.metadata (4.1 kB)
+Collecting pytest-benchmark (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading pytest_benchmark-5.2.3-py3-none-any.whl.metadata (29 kB)
+Collecting pytest-codspeed (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading pytest_codspeed-4.3.0-py3-none-any.whl.metadata (7.2 kB)
+Collecting pytest-recording (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading pytest_recording-0.13.4-py3-none-any.whl.metadata (11 kB)
+Collecting pytest-socket<1.0.0,>=0.7.0 (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading pytest_socket-0.7.0-py3-none-any.whl.metadata (6.7 kB)
+Collecting pytest<9.0.0,>=7.0.0 (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading pytest-8.4.2-py3-none-any.whl.metadata (7.7 kB)
+Collecting syrupy<5.0.0,>=4.0.0 (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading syrupy-4.9.1-py3-none-any.whl.metadata (38 kB)
+Collecting vcrpy<9.0.0,>=8.0.0 (from langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading vcrpy-8.1.1-py3-none-any.whl.metadata (4.7 kB)
+Requirement already satisfied: annotated-types>=0.6.0 in ./.venv/lib/python3.12/site-packages (from pydantic<3.0.0,>=2.9.0->langchain-google-vertexai) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.5 in ./.venv/lib/python3.12/site-packages (from pydantic<3.0.0,>=2.9.0->langchain-google-vertexai) (2.41.5)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./.venv/lib/python3.12/site-packages (from pydantic<3.0.0,>=2.9.0->langchain-google-vertexai) (0.4.2)
+Requirement already satisfied: googleapis-common-protos<2.0.0,>=1.56.2 in ./.venv/lib/python3.12/site-packages (from google-api-core!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,<3.0.0,>=1.34.1->google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,<3.0.0,>=1.34.1->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (1.72.0)
+Requirement already satisfied: grpcio-status<2.0.0,>=1.33.2 in ./.venv/lib/python3.12/site-packages (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,<3.0.0,>=1.34.1->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (1.78.0)
+Requirement already satisfied: pyasn1-modules>=0.2.1 in ./.venv/lib/python3.12/site-packages (from google-auth<3.0.0,>=2.47.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (0.4.2)
+Requirement already satisfied: cryptography>=38.0.3 in ./.venv/lib/python3.12/site-packages (from google-auth<3.0.0,>=2.47.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (46.0.5)
+Requirement already satisfied: rsa<5,>=3.1.4 in ./.venv/lib/python3.12/site-packages (from google-auth<3.0.0,>=2.47.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (4.9.1)
+Requirement already satisfied: python-dateutil<3.0.0,>=2.8.2 in ./.venv/lib/python3.12/site-packages (from google-cloud-bigquery!=3.20.0,<4.0.0,>=1.15.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (2.9.0.post0)
+Collecting grpc-google-iam-v1<1.0.0,>=0.14.0 (from google-cloud-resource-manager<3.0.0,>=1.3.3->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai)
+  Downloading grpc_google_iam_v1-0.14.3-py3-none-any.whl.metadata (9.2 kB)
+Requirement already satisfied: websockets<15.1.0,>=13.0.0 in ./.venv/lib/python3.12/site-packages (from google-genai<2.0.0,>=1.59.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (15.0.1)
+Collecting distro<2,>=1.7.0 (from google-genai<2.0.0,>=1.59.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai)
+  Using cached distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Requirement already satisfied: sniffio in ./.venv/lib/python3.12/site-packages (from google-genai<2.0.0,>=1.59.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (1.3.1)
+Requirement already satisfied: jsonpointer>=1.9 in ./.venv/lib/python3.12/site-packages (from jsonpatch<2.0.0,>=1.33.0->langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (3.0.0)
+Requirement already satisfied: orjson>=3.9.14 in ./.venv/lib/python3.12/site-packages (from langsmith<1.0.0,>=0.3.45->langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (3.11.7)
+Requirement already satisfied: requests-toolbelt>=1.0.0 in ./.venv/lib/python3.12/site-packages (from langsmith<1.0.0,>=0.3.45->langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (1.0.0)
+Requirement already satisfied: xxhash>=3.0.0 in ./.venv/lib/python3.12/site-packages (from langsmith<1.0.0,>=0.3.45->langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (3.6.0)
+Requirement already satisfied: zstandard>=0.23.0 in ./.venv/lib/python3.12/site-packages (from langsmith<1.0.0,>=0.3.45->langchain-core<2.0.0,>=1.2.7->langchain-google-vertexai) (0.25.0)
+Collecting iniconfig>=1 (from pytest<9.0.0,>=7.0.0->langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Requirement already satisfied: pluggy<2,>=1.5 in ./.venv/lib/python3.12/site-packages (from pytest<9.0.0,>=7.0.0->langchain-tests>=1.0.1->langchain-google-vertexai) (1.6.0)
+Requirement already satisfied: pygments>=2.7.2 in ./.venv/lib/python3.12/site-packages (from pytest<9.0.0,>=7.0.0->langchain-tests>=1.0.1->langchain-google-vertexai) (2.19.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./.venv/lib/python3.12/site-packages (from requests<3.0.0,>=2.22.0->google-cloud-storage<4.0.0,>=2.18.0->langchain-google-vertexai) (3.4.4)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./.venv/lib/python3.12/site-packages (from requests<3.0.0,>=2.22.0->google-cloud-storage<4.0.0,>=2.18.0->langchain-google-vertexai) (2.6.3)
+Requirement already satisfied: wrapt in ./.venv/lib/python3.12/site-packages (from vcrpy<9.0.0,>=8.0.0->langchain-tests>=1.0.1->langchain-google-vertexai) (2.1.1)
+Collecting py-cpuinfo (from pytest-benchmark->langchain-tests>=1.0.1->langchain-google-vertexai)
+  Downloading py_cpuinfo-9.0.0-py3-none-any.whl.metadata (794 bytes)
+Requirement already satisfied: cffi>=1.17.1 in ./.venv/lib/python3.12/site-packages (from pytest-codspeed->langchain-tests>=1.0.1->langchain-google-vertexai) (2.0.0)
+Requirement already satisfied: rich>=13.8.1 in ./.venv/lib/python3.12/site-packages (from pytest-codspeed->langchain-tests>=1.0.1->langchain-google-vertexai) (14.3.2)
+Requirement already satisfied: pycparser in ./.venv/lib/python3.12/site-packages (from cffi>=1.17.1->pytest-codspeed->langchain-tests>=1.0.1->langchain-google-vertexai) (3.0)
+Requirement already satisfied: pyasn1<0.7.0,>=0.6.1 in ./.venv/lib/python3.12/site-packages (from pyasn1-modules>=0.2.1->google-auth<3.0.0,>=2.47.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (0.6.2)
+Requirement already satisfied: six>=1.5 in ./.venv/lib/python3.12/site-packages (from python-dateutil<3.0.0,>=2.8.2->google-cloud-bigquery!=3.20.0,<4.0.0,>=1.15.0->google-cloud-aiplatform<2.0.0,>=1.97.0->langchain-google-vertexai) (1.17.0)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./.venv/lib/python3.12/site-packages (from rich>=13.8.1->pytest-codspeed->langchain-tests>=1.0.1->langchain-google-vertexai) (4.0.0)
+Requirement already satisfied: mdurl~=0.1 in ./.venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.8.1->pytest-codspeed->langchain-tests>=1.0.1->langchain-google-vertexai) (0.1.2)
+Downloading langchain_google_vertexai-3.2.2-py3-none-any.whl (113 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 113.4/113.4 kB 13.1 MB/s eta 0:00:00
+Downloading bottleneck-1.6.0-cp312-cp312-macosx_11_0_arm64.whl (100 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.5/100.5 kB 11.1 MB/s eta 0:00:00
+Downloading google_cloud_aiplatform-1.137.0-py2.py3-none-any.whl (8.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.2/8.2 MB 33.4 MB/s eta 0:00:00
+Downloading google_cloud_storage-3.9.0-py3-none-any.whl (321 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 321.3/321.3 kB 13.7 MB/s eta 0:00:00
+Downloading google_cloud_vectorsearch-0.4.0-py3-none-any.whl (177 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 177.7/177.7 kB 20.1 MB/s eta 0:00:00
+Downloading httpx_sse-0.4.3-py3-none-any.whl (9.0 kB)
+Downloading langchain_tests-1.1.4-py3-none-any.whl (55 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 55.2/55.2 kB 7.0 MB/s eta 0:00:00
+Downloading numexpr-2.14.1-cp312-cp312-macosx_11_0_arm64.whl (152 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 152.2/152.2 kB 18.1 MB/s eta 0:00:00
+Downloading pyarrow-22.0.0-cp312-cp312-macosx_12_0_arm64.whl (34.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 34.2/34.2 MB 29.9 MB/s eta 0:00:00
+Downloading validators-0.35.0-py3-none-any.whl (44 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.7/44.7 kB 3.6 MB/s eta 0:00:00
+Using cached docstring_parser-0.17.0-py3-none-any.whl (36 kB)
+Downloading google_cloud_bigquery-3.40.1-py3-none-any.whl (262 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 262.0/262.0 kB 12.8 MB/s eta 0:00:00
+Downloading google_cloud_core-2.5.0-py3-none-any.whl (29 kB)
+Downloading google_cloud_resource_manager-1.16.0-py3-none-any.whl (400 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 400.2/400.2 kB 19.9 MB/s eta 0:00:00
+Downloading google_crc32c-1.8.0-cp312-cp312-macosx_12_0_arm64.whl (31 kB)
+Downloading google_genai-1.63.0-py3-none-any.whl (724 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 724.7/724.7 kB 28.2 MB/s eta 0:00:00
+Downloading google_resumable_media-2.8.0-py3-none-any.whl (81 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 81.3/81.3 kB 9.5 MB/s eta 0:00:00
+Downloading numpy-2.4.2-cp312-cp312-macosx_14_0_arm64.whl (5.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 32.6 MB/s eta 0:00:00
+Downloading pytest-8.4.2-py3-none-any.whl (365 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 365.8/365.8 kB 15.4 MB/s eta 0:00:00
+Downloading pytest_asyncio-1.3.0-py3-none-any.whl (15 kB)
+Downloading pytest_socket-0.7.0-py3-none-any.whl (6.8 kB)
+Downloading syrupy-4.9.1-py3-none-any.whl (52 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 52.2/52.2 kB 6.5 MB/s eta 0:00:00
+Downloading vcrpy-8.1.1-py3-none-any.whl (42 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.4/42.4 kB 3.7 MB/s eta 0:00:00
+Downloading pytest_benchmark-5.2.3-py3-none-any.whl (45 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.3/45.3 kB 4.4 MB/s eta 0:00:00
+Downloading pytest_codspeed-4.3.0-py3-none-any.whl (125 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 125.2/125.2 kB 11.1 MB/s eta 0:00:00
+Downloading pytest_recording-0.13.4-py3-none-any.whl (13 kB)
+Using cached distro-1.9.0-py3-none-any.whl (20 kB)
+Downloading grpc_google_iam_v1-0.14.3-py3-none-any.whl (32 kB)
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading py_cpuinfo-9.0.0-py3-none-any.whl (22 kB)
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/docstring_parser-0.17.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/distro-1.9.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+Installing collected packages: py-cpuinfo, vcrpy, validators, pyarrow, numpy, iniconfig, httpx-sse, google-crc32c, docstring_parser, distro, pytest, numexpr, google-resumable-media, bottleneck, syrupy, pytest-socket, pytest-recording, pytest-codspeed, pytest-benchmark, pytest-asyncio, grpc-google-iam-v1, langchain-tests, google-genai, google-cloud-core, google-cloud-vectorsearch, google-cloud-storage, google-cloud-resource-manager, google-cloud-bigquery, google-cloud-aiplatform, langchain-google-vertexai
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+Successfully installed bottleneck-1.6.0 distro-1.9.0 docstring_parser-0.17.0 google-cloud-aiplatform-1.137.0 google-cloud-bigquery-3.40.1 google-cloud-core-2.5.0 google-cloud-resource-manager-1.16.0 google-cloud-storage-3.9.0 google-cloud-vectorsearch-0.4.0 google-crc32c-1.8.0 google-genai-1.63.0 google-resumable-media-2.8.0 grpc-google-iam-v1-0.14.3 httpx-sse-0.4.3 iniconfig-2.3.0 langchain-google-vertexai-3.2.2 langchain-tests-1.1.4 numexpr-2.14.1 numpy-2.4.2 py-cpuinfo-9.0.0 pyarrow-22.0.0 pytest-8.4.2 pytest-asyncio-1.3.0 pytest-benchmark-5.2.3 pytest-codspeed-4.3.0 pytest-recording-0.13.4 pytest-socket-0.7.0 syrupy-4.9.1 validators-0.35.0 vcrpy-8.1.1
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/anthropic-0.79.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/jiter-0.13.0.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/langchain_anthropic-1.3.3.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+WARNING: Skipping /Users/abhinav/Documents/GitHub/evalsforevals/.venv/lib/python3.12/site-packages/json_repair-0.57.1.dist-info due to invalid metadata entry 'name'
+
+[notice] A new release of pip is available: 24.0 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
