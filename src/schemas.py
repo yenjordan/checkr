@@ -38,6 +38,7 @@ class CodeExecutionResult(BaseModel):
     code: str
     language: str
     ran_successfully: bool
+    is_fundamentally_correct: bool = True
     stdout: str
     stderr: str
     analysis: str

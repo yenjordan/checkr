@@ -25,14 +25,26 @@ async def CodingAgent(state: AgentFState) -> AgentFState:
 
     coding_prompt = ChatPromptTemplate.from_messages([
         ("system", (
-            "You are an expert code reviewer who analyzes code for conceptual correctness. "
-            "Compare the provided code unit with the stated intent/requirements and determine "
-            "if the code conceptually matches what it's supposed to do. Look for logical errors, "
-            "incorrect algorithms, or mismatches between intent and implementation.\n\n"
+            "You are an expert code reviewer who analyzes code from research papers for FUNDAMENTAL correctness. "
+            "Your job is to determine whether the code is conceptually sound and aligned with the paper's claims.\n\n"
+            "CRITICAL: These are code SNIPPETS extracted from a paper — they are NOT complete programs. "
+            "Do NOT flag issues that are artifacts of incomplete extraction, such as:\n"
+            "- Missing imports, undefined variables, or missing helper functions (these exist elsewhere in the paper/codebase)\n"
+            "- Minor syntax issues from OCR or formatting (missing colons, indentation)\n"
+            "- Missing context or setup code\n"
+            "- Variables referenced but not defined in the snippet\n\n"
+            "DO flag these HIGH-VALUE issues:\n"
+            "- Algorithmic errors: the logic doesn't match what the paper claims it does\n"
+            "- Incorrect math/formulas translated to code (wrong operations, off-by-one in critical computations)\n"
+            "- Fundamental mismatches between the code's behavior and the paper's stated methodology\n"
+            "- Hardcoded values that contradict the paper's described parameters\n"
+            "- Logic that would produce incorrect results even with all dependencies present\n\n"
+            "If the code snippets are fundamentally in the right direction for the paper's claims, "
+            "mark is_conceptually_correct as true even if there are minor snippet-level issues.\n\n"
             "Respond with ONLY a JSON object in this exact format:\n"
             '{{"is_conceptually_correct": true, "issues": ["issue1", ...], "explanation": "..."}}'
         )),
-        ("human", "Code unit:\n```\n{code_unit}\n```\n\nIntent/Requirements:\n{intent}\n\nAnalyze if this code is conceptually correct given the intent.")
+        ("human", "Code snippets from the paper:\n```\n{code_unit}\n```\n\nPaper's claims/methodology:\n{intent}\n\nAnalyze whether this code is fundamentally correct and aligned with the paper's claims.")
     ])
 
     chain = coding_prompt | llm

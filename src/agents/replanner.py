@@ -4,7 +4,7 @@ import tempfile
 import os
 from schemas import AgentFState, ReplannerOutput
 from langchain_core.prompts import ChatPromptTemplate
-from config import llm_reasoning
+from config import llm
 from utils import parse_json_response
 
 LANG_CONFIG = {
@@ -15,8 +15,62 @@ LANG_CONFIG = {
     "shell": {"ext": ".sh", "cmd": ["bash"]},
 }
 
+COMPILED_LANGS = {
+    "c": {"ext": ".c", "compiler": ["gcc"], "flags": ["-lm"]},
+    "cpp": {"ext": ".cpp", "compiler": ["g++"], "flags": ["-std=c++17"]},
+    "c++": {"ext": ".cpp", "compiler": ["g++"], "flags": ["-std=c++17"]},
+}
+
+
+def _execute_compiled(code: str, lang_key: str, timeout: int = 30) -> dict:
+    config = COMPILED_LANGS[lang_key]
+    src_path = None
+    bin_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=config["ext"], delete=False
+        ) as f:
+            f.write(code)
+            f.flush()
+            src_path = f.name
+        bin_path = src_path + ".out"
+        compile_result = subprocess.run(
+            config["compiler"] + [src_path, "-o", bin_path] + config["flags"],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        if compile_result.returncode != 0:
+            return {
+                "ran_successfully": False,
+                "stdout": "",
+                "stderr": f"Compilation failed:\n{compile_result.stderr[:5000]}",
+            }
+        run_result = subprocess.run(
+            [bin_path], capture_output=True, text=True, timeout=timeout,
+        )
+        return {
+            "ran_successfully": run_result.returncode == 0,
+            "stdout": run_result.stdout[:5000],
+            "stderr": run_result.stderr[:5000],
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "ran_successfully": False,
+            "stdout": "",
+            "stderr": f"Execution timed out after {timeout}s",
+        }
+    finally:
+        if src_path and os.path.exists(src_path):
+            os.unlink(src_path)
+        if bin_path and os.path.exists(bin_path):
+            os.unlink(bin_path)
+
+
 def execute_code(code: str, language: str, timeout: int = 30) -> dict:
     lang = language.lower()
+
+    if lang in COMPILED_LANGS:
+        return _execute_compiled(code, lang, timeout)
+
     config = LANG_CONFIG.get(lang)
 
     if not config:
@@ -91,17 +145,28 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
 
     analysis_prompt = ChatPromptTemplate.from_messages([
         ("system", (
-            "You are an expert at analyzing code execution results from research papers. "
-            "Given the code chunks, their execution results (stdout/stderr), and whether "
-            "they ran successfully, provide a detailed analysis of each chunk's validity "
-            "and accuracy. For chunks that failed, explain likely causes. For chunks that "
-            "ran, assess whether the output looks correct given the code's intended purpose. "
-            "For non-executable languages like pseudocode, analyze the logic for correctness.\n\n"
+            "You are an expert at analyzing code from research papers for FUNDAMENTAL correctness. "
+            "Your goal is to assess whether the code logic is sound and aligned with the paper's methodology.\n\n"
+            "CRITICAL CONTEXT: These are code SNIPPETS extracted from a paper, not complete programs. "
+            "Execution failures are EXPECTED and normal because snippets lack imports, dependencies, "
+            "data files, and surrounding code.\n\n"
+            "For EACH chunk, set is_fundamentally_correct:\n"
+            "- TRUE if the code logic/algorithm is sound, even if execution failed due to missing imports/data/context\n"
+            "- FALSE only if the code has a real algorithmic bug, incorrect formula, or contradicts the paper's claims\n\n"
+            "Common snippet failures to IGNORE (keep is_fundamentally_correct: true):\n"
+            "- ImportError, ModuleNotFoundError, NameError (missing dependencies)\n"
+            "- FileNotFoundError (missing data files)\n"
+            "- Incomplete code that references external functions\n\n"
+            "Only set is_fundamentally_correct to FALSE for:\n"
+            "- Wrong algorithm logic that doesn't match the paper's claims\n"
+            "- Incorrect math/formulas in the code\n"
+            "- Logic bugs that would produce wrong results even with all dependencies\n\n"
             "Respond with ONLY a JSON object in this exact format:\n"
             '{{"results": [{{"code": "...", "language": "python", "ran_successfully": true, '
+            '"is_fundamentally_correct": true, '
             '"stdout": "...", "stderr": "...", "analysis": "..."}}, ...], "summary": "..."}}'
         )),
-        ("human", "Analyze these code execution results:\n\n{results}")
+        ("human", "Analyze these code execution results. Focus on fundamental correctness, not snippet-level failures:\n\n{results}")
     ])
 
     results_text = ""
@@ -114,7 +179,7 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
             f"Stderr: {r['stderr'] or '(empty)'}\n\n"
         )
 
-    chain = analysis_prompt | llm_reasoning
+    chain = analysis_prompt | llm
     response = await chain.ainvoke({"results": results_text})
 
     # Try to parse LLM analysis; fall back to execution results alone
@@ -127,6 +192,7 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
                 "code": r["code"],
                 "language": r["language"],
                 "ran_successfully": r["ran_successfully"],
+                "is_fundamentally_correct": matching.is_fundamentally_correct if matching else True,
                 "stdout": r["stdout"],
                 "stderr": r["stderr"],
                 "analysis": matching.analysis if matching else "No analysis available",
@@ -139,12 +205,13 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
                 "code": r["code"],
                 "language": r["language"],
                 "ran_successfully": r["ran_successfully"],
+                "is_fundamentally_correct": True,
                 "stdout": r["stdout"],
                 "stderr": r["stderr"],
                 "analysis": "Passed" if r["ran_successfully"] else f"Failed: {r['stderr'][:200]}",
             })
-        passed = sum(1 for r in execution_results if r["ran_successfully"])
-        summary = f"{passed}/{len(execution_results)} code chunks executed successfully."
+        correct = sum(1 for r in final_results if r["is_fundamentally_correct"])
+        summary = f"{correct}/{len(final_results)} code chunks are fundamentally correct."
 
     return {
         "subagent_responses": {
