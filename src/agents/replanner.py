@@ -1,3 +1,4 @@
+import asyncio
 import subprocess
 import tempfile
 import os
@@ -61,18 +62,21 @@ async def ReplannerAgent(state: AgentFState) -> AgentFState:
         .get("chunks", [])
     )
 
-    execution_results = []
-
-    for chunk in chunks:
-        exec_result = execute_code(chunk["code"], chunk["language"])
-
-        execution_results.append({
+    async def _run_one(chunk: dict) -> dict:
+        exec_result = await asyncio.to_thread(
+            execute_code, chunk["code"], chunk["language"]
+        )
+        return {
             "code": chunk["code"],
             "language": chunk["language"],
             "ran_successfully": exec_result["ran_successfully"],
             "stdout": exec_result["stdout"],
             "stderr": exec_result["stderr"],
-        })
+        }
+
+    execution_results = list(await asyncio.gather(
+        *[_run_one(chunk) for chunk in chunks]
+    ))
 
     # If no chunks to analyze, return early
     if not execution_results:
