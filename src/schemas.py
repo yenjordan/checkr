@@ -50,6 +50,7 @@ class MathChunk(BaseModel):
     latex: str              # The equation (LaTeX or plain text)
     context: str            # Surrounding text explaining the equation
     equation_type: str      # "definition", "theorem", "loss_function", "derivation", etc.
+    source_text: str = ""   # Exact raw text as it appears in the paper (for highlighting)
 
 class MathExtractorOutput(BaseModel):
     chunks: List[MathChunk] = []

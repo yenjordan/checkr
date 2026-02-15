@@ -1,16 +1,18 @@
 import sys
 import os
 import json
+import re
 import tempfile
 from pathlib import Path
 
 # Add src/ to import path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+import ocrmypdf
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -19,6 +21,7 @@ from graph import workflow, MAX_RETRIES
 from services.code_extract import extract_pdf, parse_document
 from services.supabase_store import save_analysis
 from services.rag_chat import chat as rag_chat
+from agents.chunk_locator import locate_chunks
 from pydantic import BaseModel
 
 app = FastAPI(title="CHECKR API")
@@ -84,15 +87,30 @@ async def check_paper(file: UploadFile = File(...)):
         structured = result.get("structured_response", {})
         subagent = result.get("subagent_responses", {})
 
+        # Locate chunks in the Document AI layout for precise highlighting
+        math_chunks = subagent.get("math_extractor", {}).get("chunks", [])
+        code_results = subagent.get("replanner", {}).get("results", [])
+        if parsed.get("page_layouts") and (math_chunks or code_results):
+            try:
+                await locate_chunks(
+                    parsed["page_layouts"],
+                    math_chunks,
+                    code_results,
+                )
+            except Exception as loc_err:
+                print(f"[ChunkLocator] Failed: {loc_err}")
+
         return {
             "verdict": structured.get("verdict", "unknown"),
             "summary": structured.get("summary", ""),
-            "code_results": subagent.get("replanner", {}).get("results", []),
+            "code_results": code_results,
             "math": subagent.get("math", {}),
-            "math_chunks": subagent.get("math_extractor", {}).get("chunks", []),
+            "math_chunks": math_chunks,
             "coding_review": subagent.get("coding", {}),
             "planner_steps": subagent.get("planner", {}).get("steps", []),
             "pages": parsed["pages"],
+            "page_texts": parsed.get("page_texts", []),
+            "page_layouts": parsed.get("page_layouts", []),
             "filename": file.filename,
         }
 
@@ -126,6 +144,43 @@ async def chat_endpoint(req: ChatRequest):
             status_code=500,
             content={"error": str(e)},
         )
+
+
+@app.post("/api/ocr")
+async def ocr_pdf(file: UploadFile = File(...)):
+    """Run OCR on a PDF and return a searchable version with selectable text."""
+    suffix = Path(file.filename).suffix or ".pdf"
+    input_path = None
+    output_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await file.read()
+            tmp.write(content)
+            input_path = tmp.name
+
+        output_path = input_path + "_ocr.pdf"
+
+        ocrmypdf.ocr(
+            input_path,
+            output_path,
+            force_ocr=True,
+            optimize=1,
+            skip_big=50,
+            jobs=2,
+        )
+
+        ocr_bytes = Path(output_path).read_bytes()
+        return Response(content=ocr_bytes, media_type="application/pdf")
+
+    except Exception as e:
+        print(f"[OCR] Failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if input_path and os.path.exists(input_path):
+            os.unlink(input_path)
+        if output_path and os.path.exists(output_path):
+            os.unlink(output_path)
 
 
 # Serve static files (assets/) and index.html
